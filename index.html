@@ -1,152 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>moz-shadow liv3c0der</title>
-<style type="text/css" media="screen">
-    body {
-        background: red;
-    }
-    #editor {
-        font-size: 20px;
-        position: absolute;
-        top: 10%;
-        right: 10%;
-        bottom: 10%;
-        left: 10%;
-        opacity: 0.4;
-        z-index: 10;
-        -webkit-transition: opacity 0.5s ease;
-    }
-    #editor.active {
-        opacity: 0.8;
-    }
-    #canvas {
-        position: absolute;
-        top: 0; left:0; right: 0; bottom: 0;
-        width: 100%; height: 100%;
-        background-color: #000;
-        z-index: 0;
-    }
-</style>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js" type="text/javascript"></script>
-<script src="http://d1n0x3qji82z53.cloudfront.net/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
-<script type="text/javascript">
-    $(function() {
-        var deactivate = function(e) {
-            $('#editor').removeClass('active');
-        };
-        var drawMethod = null;
-        var oldDrawMethod = null;
-        var patternMethod = null;
-        var oldPatternMethod = null;
-        var timeout = null;
-        var activate = function(e) {
-            console.log("keypressed")
-            $('#editor').addClass('active');
-            if(timeout) {
-                clearTimeout(timeout);
-            }
-            timeout = setTimeout(deactivate, 4000);
-            return true;
-        };
-        var reload = function() {
-            var code = editor.getValue();
-            try {
-                eval(code);
-                if (drawMethod) oldDrawMethod = drawMethod;
-                if (draw) drawMethod = draw;
-                if (patternMethod) oldPatternMethod = patternMethod;
-                if (pattern) patternMethod = pattern;
-            } catch(e) {
-                console.log(e);
-            }
-
-        }
-        var keydown = function(e) {
-            if(e.metaKey && e.keyCode == 13) {
-                reload();
-            }
-            activate(e);
-        }
-        var editor = ace.edit("editor");
-        editor.setTheme("ace/theme/monokai");
-
-        editor.getSession().setMode("ace/mode/javascript");
-        editor.container.addEventListener("keydown", keydown, true)
-        // $(window).keydown(activate);
-        editor.on('focus', activate);
-        $(window).bind('resize', function() {
-            $('#canvas').width(window.innerWidth).height(window.innerHeight);
-        })
-        var c = $('#canvas')[0].getContext('2d');
-        c.width = 1024;
-        c.height = 768;
-        console.log(c.width, c.height);
-        var state = {
-            init: function(name, value) {
-                if (typeof(this[name]) == 'undefined') this[name] = value;
-            }
-        };
-        var canvasRunLoop = function() {
-            if(drawMethod) {
-                try {
-                    drawMethod(c, state);
-                } catch(e) {
-                    console.log(e.lineNumber);
-                    if (oldDrawMethod) {
-                        drawMethod = oldDrawMethod;
-                        drawMethod(c, state);
-                    }
-                }
-            }
-            requestAnimationFrame(canvasRunLoop);
-        }
-        canvasRunLoop();
-        var tempo = 120;
-
-        var steps = 16;
-        var timePerPattern = steps / 4 / (tempo/60);
-        var timePerStep = timePerPattern / steps;
-        var ac =  new webkitAudioContext();
-        var masterGain = ac.createGainNode();
-        masterGain.gain.value = 0.5;
-        masterGain.connect(ac.destination);
-        var outlet = masterGain;
-        var nextPattern = 0;
-        var audioRunLoop = function() {
-            if (nextPattern == 0 || (nextPattern - ac.currentTime) < 0.8) {
-                if (nextPattern == 0) nextPattern = ac.currentTime;
-                if (patternMethod) {
-                    var notes = [];
-                    var i,l;
-                    try {
-                        notes = patternMethod(ac, outlet, state, {});
-                    } catch(e) {
-                        patternMethod = oldPatternMethod;
-                        notes = patternMethod(ac, outlet, state, {});
-                    }
-                    for(i=0,l=notes.length;i<l;i++) {
-                        if (notes[i])
-                            try {
-                                notes[i](i*timePerStep + nextPattern, timePerStep);
-                            } catch(e) {
-                                console.log(e);
-                            }
-
-                    }
-                }
-                nextPattern += timePerPattern;
-            }
-            setTimeout(audioRunLoop, (timePerPattern * 1000) - 1000);
-        }
-        audioRunLoop();
-
-
-    });
-</script>
+    <title>moz-shadow liv3c0der</title>
+    <link rel="stylesheet" type="text/css" href="/style.css">
 </head>
 <body>
 <div id="editor">
+
 // NAME: default
 
 function draw(c, s) {
@@ -174,38 +34,41 @@ function draw(c, s) {
     s.x += 0.05;
 
 }
-// context, outlet, state, data
+// context,     outlet, times, time per step, state, data
 // should return array of functions that accept a single argument: the time
-function pattern(c, o, s, d) {
-  s.init('loop',0);
-  function note(freq) {
-      return function(t, l) {
+function pattern(c, o, t, l, s, d) {
+    var i,l;
+    s.init('loop',0);
+    function note(t, l, freq) {
         var gain = c.createGainNode();
+        LC.LEnv(gain.gain, t, l, 0.0,0.5,0.02,0.3,0.5,0.2);
         gain.connect(o);
-        gain.gain.value = 0.0;
-        gain.gain.linearRampToValueAtTime(1.0,t+0.1);
-        gain.gain.setValueAtTime(1.0,t+(0.6*l));
-        gain.gain.linearRampToValueAtTime(0.0,t+(0.8*l));
-        var osc=c.createOscillator(); osc.frequency.value = freq; osc.connect(gain); osc.noteOn(t); osc.noteOff(t+(l*0.8));
-      }
-  }
+        var osc=c.createOscillator(); osc.frequency.value = freq; osc.connect(gain); osc.noteOn(t); osc.noteOff(t+l);
+    }
 
-  var freq = 110 * Math.pow(2,s.loop);
-  s.loop = (s.loop + 1) % 5
+    var freq = 110 * Math.pow(2,s.loop);
 
-  return [
-    note(freq * 2),
-    null,null,null,
-    function(t,l) { var osc=c.createOscillator(); osc.connect(o); osc.noteOn(t); osc.noteOff(t+(l*0.4));},
-    null,null,null,
-    function(t,l) { var osc=c.createOscillator(); osc.connect(o); osc.noteOn(t); osc.noteOff(t+(l*0.8));},
-    null,note(freq),null,
-    function(t,l) { var osc=c.createOscillator(); osc.frequency.value = 880; osc.connect(o); osc.noteOn(t); osc.noteOff(t+(l*0.4));},
-    null,note(freq * 2),
-  ]
+    note(t[ 0], l*4, freq * 2);note(t[ 0], l*4, freq * 3);
+    LC.S.amen.playGrain(o, t[0], l, 0.0, 1.0);
+    LC.S.amen.playGrain(o, t[2], l, 0.22, 1.0);
+    note(t[ 4], l*0.5, 880);
+    LC.S.amen.playGrain(o, t[3], l, 0.45, 1.0);
+    note(t[ 8], l*1, 880);
+    LC.S.amen.playGrain(o, t[8], 2*l, 1.4, 2.0);
+    note(t[12], l*4, freq * 2);
+    LC.S.amen.playGrain(o, t[12], 2*l, 1.3, 1.0);
+    note(t[13], l*2, 880);
+    LC.S.amen.playGrain(o, t[14], 2*l, 1.4, 1.0);
+    note(t[14], l*1, 440);
 }
 
 </div>
 <canvas width=1024 height=768 id="canvas"></canvas>
+<ul id="keylist" class="hidden"></ul>
+<script src="/javascript/vendor/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="/javascript/vendor/lawnchair.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="/javascript/vendor/ace-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript" src="/javascript/livecoder.js?v=103" charset="utf-8"></script>
+<script type="text/javascript">LC.instance = new LC.LiveCoder('#editor', 'canvas', '#keylist');</script>
 </body>
 </html>
