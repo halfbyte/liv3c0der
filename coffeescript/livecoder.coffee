@@ -10,7 +10,6 @@ LC.NOTES = [ 16.35,    17.32,    18.35,    19.45,    20.6,     21.83,    23.12, 
            4186.01,  4434.92,  4698.64,  4978 ]
 
 LC.LEnv = (p,t,l,min, max,a,d,s,r) ->
-  return if (a + d + r) > 1
   return if s < 0 or s > 1
   p.setValueAtTime(min, t)
   p.linearRampToValueAtTime(max, t + (a*l))
@@ -18,6 +17,75 @@ LC.LEnv = (p,t,l,min, max,a,d,s,r) ->
   p.setValueAtTime(max * s, t + l - (l*r))
   p.linearRampToValueAtTime(min, t + l)
 
+
+class BassSynth
+  constructor: (context) ->
+    @context = context
+    # Params
+    @spread = 10;
+    @osc_type = @context.createOscillator().SAWTOOTH;
+    @amp_a = 0.01;
+    @amp_d = 0.1;
+    @amp_s = 0.8;
+    @amp_r = 0.1;
+
+    @flt_a = 0.01;
+    @flt_d = 0.1;
+    @flt_s = 0.8;
+    @flt_r = 0.01;
+    @flt_f = 500;
+    @flt_env = 2000;
+    @flt_Q = 10;
+
+  play: (destination, time, length, note, volume=0.2) ->
+    gain = @context.createGainNode();
+    filter = @context.createBiquadFilter();
+    osc1 = @context.createOscillator();
+    osc2 = @context.createOscillator();
+    osc1.type = @osc_type
+    osc2.type = @osc_type
+    osc1.detune.value = @spread
+    osc2.detune.value = @spread * -1
+    osc1.frequency.value = LC.NOTES[note]
+    osc2.frequency.value = LC.NOTES[note]
+    osc2.frequency.value = LC.NOTES[note]
+    LC.LEnv(gain.gain, time, length, 0, volume, @amp_a, @amp_d, @amp_s, @amp_r)
+    LC.LEnv(filter.frequency, time, length, @flt_f, (@flt_f + @flt_env), @flt_a, @flt_d, @flt_s, @flt_r)
+    filter.Q.value = @flt_Q;
+    osc1.connect(filter)
+    osc2.connect(filter)
+    filter.connect(gain)
+    gain.connect(destination)
+    osc1.noteOn(time)
+    osc2.noteOn(time)
+    osc1.noteOff(time+length)
+    osc2.noteOff(time+length)
+
+
+
+
+class Reverb
+  constructor: (context) ->
+    @context = context
+    @destination = context.createGainNode();
+    @destination.gain.value = 1.0
+    @mixer = context.createGainNode()
+    @mixer.gain.value = 0.5
+
+    @convolver = context.createConvolver()
+    @convolver.connect(@mixer)
+    @destination.connect(@convolver)
+    # public properties
+    @mix = @mixer.gain
+    
+  buffer: (buffer) ->
+    if @convolver.buffer != buffer
+      @convolver.buffer = buffer
+
+  connect: (dest) ->
+    @mixer.connect(dest)
+    @destination.connect(dest)
+    
 
 class Delay
   constructor: (context) ->
@@ -67,6 +135,7 @@ class SampleList
     'dub_base': 'audio/dub-base.wav'
     'dub_hhcl': 'audio/dub-hhcl.wav'
     'dub_clapsnare': 'audio/dub-clapsnare.wav'
+    'ir_t600': 'audio/t600.wav'
 
   constructor: (audioContext) ->
     console.log("new sample list")
@@ -101,21 +170,29 @@ class Sample
     console.log("error decoding", @url, error)
     @error = error
 
-  makeBufferSource: (o,r) ->
+  makeBufferSource: (o,r, g) ->
+    console.log("GAIN", g)
     player = @context.createBufferSource(@buffer)
     player.buffer = @buffer
     player.playbackRate.value = r
-    player.connect(o)
+    gain = @context.createGainNode();
+    gain.gain.value = g
+    player.connect(gain)
+    gain.connect(o)
     player
 
-  play: (o, t, l, r=1.0) ->
+  play: (o, t, l, r=1.0, g=1.0) ->
     return unless @loaded
-    player = @makeBufferSource(o,r)
+    player = @makeBufferSource(o,r, g)
     player.noteOn(t)
     player.noteOff(t + l)
-  playGrain: (o,t,offset, l, r=1.0) ->
+  playShot: (o, t, r=1.0, g=1.0) ->
     return unless @loaded
-    player = @makeBufferSource(o,r)
+    player = @makeBufferSource(o,r, g)
+    player.noteOn(t)
+  playGrain: (o,t,offset, l, r=1.0, g=1.0) ->
+    return unless @loaded
+    player = @makeBufferSource(o,r, g)
     player.noteGrainOn(t,offset,l)
 
 class State
@@ -170,7 +247,7 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
 
     save: ->
       code = @editor.getValue()
-      group = code.match(/NAME: {0,1}(\w+)?\n/)
+      group = code.match(/NAME: {0,1}([\w _\-]+)?\n/)
       console.log(group)
       if group
         name = group[1]
@@ -249,6 +326,11 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
 
       LC.DelayLine = new Delay(@audioContext)
       LC.DelayLine.connect(@masterGain)
+
+      LC.ReverbLine = new Reverb(@audioContext)
+      LC.ReverbLine.connect(@masterGain)
+
+      LC.BassSynth = new BassSynth(@audioContext)
 
 
 
