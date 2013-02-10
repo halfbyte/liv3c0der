@@ -14,16 +14,59 @@ LC.LEnv = (p,t,l,min, max,a,d,s,r) ->
   p.setValueAtTime(min, t)
   p.linearRampToValueAtTime(max, t + (a*l))
   p.linearRampToValueAtTime(min + ((max - min) * s), t + ((a + d)*l))
-  p.setValueAtTime(max * s, t + l - (l*r))
+  p.setValueAtTime(min + ((max - min) * s), t + l - (l*r))
   p.linearRampToValueAtTime(min, t + l)
+
+
+class AcidSynth
+  constructor: (context) ->
+    @context = context
+    helposc = @context.createOscillator()
+    @SAWTOOTH = helposc.SAWTOOTH
+    @SQUARE = helposc.SQUARE
+    @osc_type = @SAWTOOTH
+    @decay = 0.6;
+    @flt_f = 300;
+    @flt_mod = 4000;
+    @Q = 20;
+
+  play: (destination, time, length, note, volume = 0.2) ->
+    gain = @context.createGainNode();
+    filter1 = @context.createBiquadFilter();
+    filter2 = @context.createBiquadFilter();
+    osc = @context.createOscillator();
+    osc.type = @osc_type
+    osc.frequency.value = LC.NOTES[note]
+
+    LC.LEnv(gain.gain, time, length, 0, volume, 0.01, @decay, 0, 0)
+    LC.LEnv(filter1.frequency, time, length, @flt_f, @flt_f + @flt_mod, 0.01, @decay, 0, 0)
+    LC.LEnv(filter2.frequency, time, length, @flt_f, @flt_f + @flt_mod, 0.01, @decay, 0, 0)
+
+
+
+    filter1.Q.value = @Q
+    filter2.Q.value = @Q
+    osc.connect(filter1)
+    filter1.connect(filter2)
+    filter2.connect(gain)
+    gain.connect(destination)
+    osc.noteOn(time)
+    osc.noteOff(time+length)
+
 
 
 class BassSynth
   constructor: (context) ->
     @context = context
+    helposc = @context.createOscillator()
+    @SAWTOOTH = helposc.SAWTOOTH
+    @SINE = helposc.SINE
+    @SQUARE = helposc.SQUARE
+    @TRIANGLE = helposc.TRIANGLE
+    
     # Params
     @spread = 10;
-    @osc_type = @context.createOscillator().SAWTOOTH;
+    @osc_type = @SAWTOOTH;
     @amp_a = 0.01;
     @amp_d = 0.1;
     @amp_s = 0.8;
@@ -47,7 +90,6 @@ class BassSynth
     osc1.detune.value = @spread
     osc2.detune.value = @spread * -1
     osc1.frequency.value = LC.NOTES[note]
-    osc2.frequency.value = LC.NOTES[note]
     osc2.frequency.value = LC.NOTES[note]
     LC.LEnv(gain.gain, time, length, 0, volume, @amp_a, @amp_d, @amp_s, @amp_r)
     LC.LEnv(filter.frequency, time, length, @flt_f, (@flt_f + @flt_env), @flt_a, @flt_d, @flt_s, @flt_r)
@@ -74,6 +116,7 @@ class Reverb
 
     @convolver = context.createConvolver()
     @convolver.connect(@mixer)
+    @convolver.buffer = LC.S.ir_t600.buffer
     @destination.connect(@convolver)
     # public properties
     @mix = @mixer.gain
@@ -128,6 +171,14 @@ class Delay
 
 
 
+class ImageList
+  imageLocations:
+    'badge': 'images/moz-shadow-badge.png'
+  constructor: ->
+    for name, url of @imageLocations
+      @[name] = new Image();
+      @[name].src = url;
+
 
 class SampleList
   sampleLocations:
@@ -137,19 +188,26 @@ class SampleList
     'dub_clapsnare': 'audio/dub-clapsnare.wav'
     'ir_t600': 'audio/t600.wav'
 
-  constructor: (audioContext) ->
-    console.log("new sample list")
+  constructor: (audioContext, completeCallback) ->
     @context = audioContext
+    @callback = completeCallback
     for name, url of @sampleLocations
-      @[name] = new Sample(audioContext, url)
+      @[name] = new Sample(audioContext, url, @loadedCallback)
+  loadedCallback: () =>
+    all_loaded = true
+    for name, url of @sampleLocations
+      all_loaded &&= @[name].loaded
+    if all_loaded
+      @callback()
 
 class Sample
-  constructor: (audioContext, url) ->
+  constructor: (audioContext, url, loadedCallback) ->
     @context = audioContext
     @url = url
     @loaded = false
     @error = null
     @load()
+    @callback = loadedCallback
 
   load: =>
     @request = new XMLHttpRequest()
@@ -159,19 +217,18 @@ class Sample
     @request.send()
 
   decode: =>
-    console.log(@request.response)
     @context.decodeAudioData(@request.response, @onDecode, @onDecodingError)
 
   onDecode: (buffer) =>
     @buffer = buffer
     @loaded = true
+    @callback(@url)
 
   onDecodingError: (error) =>
     console.log("error decoding", @url, error)
     @error = error
 
   makeBufferSource: (o,r, g) ->
-    console.log("GAIN", g)
     player = @context.createBufferSource(@buffer)
     player.buffer = @buffer
     player.playbackRate.value = r
@@ -235,7 +292,6 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
         @load($(e.target).data('key'))
     load: (key) ->
       db.get key, (data) =>
-        console.log("loading #{data.key}")
         @editor.setValue(data.code)
         @editor.focus()
 
@@ -248,12 +304,11 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
     save: ->
       code = @editor.getValue()
       group = code.match(/NAME: {0,1}([\w _\-]+)?\n/)
-      console.log(group)
       if group
         name = group[1]
       else
         name = "foobar_#{Math.round(Math.random()*1000)}"
-      db.save({key: name, code: code}, "console.log('huhu')")
+      db.save({key: name, code: code})
       @updateKeyList()
 
 
@@ -290,17 +345,27 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
 
 
     initCanvas: ->
-      $(window).bind 'resize', ->
+      $(window).bind 'resize', =>
           @$canvas.width(window.innerWidth).height(window.innerHeight)
-      @context = @$canvas[0].getContext('2d')
-      @context.width = 1024;
-      @context.height = 768;
+          @$canvas[0].width = window.innerWidth;@$canvas[0].height = window.innerHeight;
+          @context.width = @$canvas.width();
+          @context.height = @$canvas.height();
+
+      @context = @$canvas[0].getContext('2d');
+      @$canvas[0].width = window.innerWidth;@$canvas[0].height = window.innerHeight;
+      @context.width = @$canvas.width();
+      @context.height = @$canvas.height();
+
+      @context.font = "bold 200px 'Courier New'";
+
+      LC.I = new ImageList();
+
       @canvasRunLoop()
 
     canvasRunLoop: =>
       if @drawMethod
-        analyserData = new Float32Array(16)
-        @analyser.getFloatFrequencyData(analyserData)
+        analyserData = new Uint8Array(16)
+        @analyser.getByteFrequencyData(analyserData)
         try
           @drawMethod(@context, @state, analyserData)
         catch exception
@@ -315,29 +380,43 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       @steps = 16
       @groove = 0;
       @audioContext = new webkitAudioContext()
-      LC.S = new SampleList(@audioContext)
+      LC.S = new SampleList(@audioContext, @postSampleInit)
       @analyser = @audioContext.createAnalyser();
       @analyser.fftSize = 64;
       @analyser.smoothingTimeConstant = 0.5;
+      @analyser.minDecibels = -100;
+      @analyser.maxDecibels = -40;
       @masterGain = @audioContext.createGainNode()
       @masterGain.gain.value = 0.5
       @masterGain.connect(@audioContext.destination)
       @masterGain.connect(@analyser)
 
+      @masterCompressor = @audioContext.createDynamicsCompressor();
+      @masterCompressor.connect(@masterGain)
+
+
+      @tuna = new Tuna(@audioContext)
+      LC.Tuna = @tuna
+
       LC.DelayLine = new Delay(@audioContext)
       LC.DelayLine.connect(@masterGain)
 
-      LC.ReverbLine = new Reverb(@audioContext)
-      LC.ReverbLine.connect(@masterGain)
 
       LC.BassSynth = new BassSynth(@audioContext)
+      LC.AcidSynth = new AcidSynth(@audioContext)
 
 
 
       # set this to whatever will be the official outpur
-      @masterOutlet = @masterGain
+      @masterOutlet = @masterCompressor
       @nextPatternTime = 0
+
+    postSampleInit: =>
+      LC.ReverbLine = new Reverb(@audioContext)
+      LC.ReverbLine.connect(@masterGain)
       @audioRunLoop()
+
+
     audioRunLoop: =>
       @timePerStep = 60 / (4 * @tempo)
 
@@ -345,7 +424,7 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
         @nextPatternTime = @audioContext.currentTime if @nextPatternTime == 0
         if @patternMethod
 
-          stepTimes = ((@nextPatternTime + (@timePerStep * i + (if i%2 == 0 then 0 else @groove * @timePerStep))) for i in [0..@steps])
+          stepTimes = ((@nextPatternTime + (@timePerStep * i + (if i%2 == 0 then 0 else @groove * @timePerStep))) for i in [0...@steps])
           try
             @patternMethod(@audioContext, @masterOutlet, stepTimes, @timePerStep, @state)
           catch e
