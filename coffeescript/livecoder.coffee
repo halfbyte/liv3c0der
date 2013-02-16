@@ -10,6 +10,7 @@ LC.NOTES = [ 16.35,    17.32,    18.35,    19.45,    20.6,     21.83,    23.12, 
            4186.01,  4434.92,  4698.64,  4978 ]
 
 LC.LEnv = (p,t,l,min, max,a,d,s,r) ->
+  console.log("ENV", t, l, min, max, a, d, s, r);
   return if s < 0 or s > 1
   p.setValueAtTime(min, t)
   p.linearRampToValueAtTime(max, t + (a*l))
@@ -63,7 +64,7 @@ class BassSynth
     @SINE = helposc.SINE
     @SQUARE = helposc.SQUARE
     @TRIANGLE = helposc.TRIANGLE
-    
+
     # Params
     @spread = 10;
     @osc_type = @SAWTOOTH;
@@ -120,7 +121,7 @@ class Reverb
     @destination.connect(@convolver)
     # public properties
     @mix = @mixer.gain
-    
+
   buffer: (buffer) ->
     if @convolver.buffer != buffer
       @convolver.buffer = buffer
@@ -128,7 +129,7 @@ class Reverb
   connect: (dest) ->
     @mixer.connect(dest)
     @destination.connect(dest)
-    
+
 
 class Delay
   constructor: (context) ->
@@ -187,6 +188,17 @@ class SampleList
     'dub_hhcl': 'audio/dub-hhcl.wav'
     'dub_clapsnare': 'audio/dub-clapsnare.wav'
     'ir_t600': 'audio/t600.wav'
+    'p_klang': 'audio/klang.wav'
+    'p_koki': 'audio/koki.wav'
+    'p_tom': 'audio/tom.wav'
+    't_base': 'audio/t_base.wav'
+    't_snare': 'audio/t_snare.wav'
+    't_clap': 'audio/t_clap.wav'
+    't_hhcl': 'audio/t_hhcl.wav'
+    't_hhop': 'audio/t_hhop.wav'
+    't_ride': 'audio/t_ride.wav'
+    't_crash': 'audio/t_crash.wav'
+
 
   constructor: (audioContext, completeCallback) ->
     @context = audioContext
@@ -292,8 +304,9 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
         @load($(e.target).data('key'))
     load: (key) ->
       db.get key, (data) =>
-        @editor.setValue(data.code)
-        @editor.focus()
+        if data
+          @editor.setValue(data.code)
+          @editor.focus()
 
     updateKeyList: ->
       @$keylist.html("<li data-action='hide'>&lt;&lt;&lt;</li>")
@@ -322,6 +335,7 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       return true
 
     reload: =>
+      @save()
       code = @editor.getValue()
       try
         eval(code)
@@ -415,6 +429,18 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       LC.ReverbLine = new Reverb(@audioContext)
       LC.ReverbLine.connect(@masterGain)
       @audioRunLoop()
+
+    displayMessage: (message) =>
+      if $('.message').length == 0
+        $('body').append($("<div class='message'></div>"))
+      $('.message').append("<p>#{message}</p>")
+      setTimeout(@removeMessage, 5000)
+
+    removeMessage: =>
+      if $('.message p').length > 1
+        $('.message p:first-child').remove();
+      else
+        $('.message').remove();
 
 
     audioRunLoop: =>

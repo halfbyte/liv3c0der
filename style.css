@@ -13,6 +13,23 @@ body {
     z-index: 10;
     -webkit-transition: opacity 0.5s ease;
 }
+
+.message {
+    width: 80%;
+    left: 10%;
+    top: 0;
+    position: absolute;
+    color: red;
+    font-size: 2em;
+    font-family: 'Courier New';
+    border: 5px solid red;
+    z-index: 2;
+}
+.message p {
+    margin: 0;
+    padding: 5px;
+}
+
 #editor.active {
     opacity: 0.8;
 }
