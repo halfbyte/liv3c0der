@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Liv3c0der by halfbyte</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Liv3c0der</h1>
+        <p>live coding audiovisual experiences in your browser</p>
+
+        <p class="view"><a href="https://github.com/halfbyte/liv3c0der">View the Project on GitHub <small>halfbyte/liv3c0der</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/halfbyte/liv3c0der/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/halfbyte/liv3c0der/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/halfbyte/liv3c0der">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h2>liv3c0der</h2>
+
+<p>A try to build an audiovisual live coding environment that's running in the browser</p>
+
+<p>Documentation is sparse, please look at the examples.</p>
+
+<p>Currently, the live code should contain two methods:</p>
+
+<p>draw(canvasContext,state, analyzerData)</p>
+
+<ul>
+<li>draw will be called within the canvas loop that is based on requestAnimationFrame</li>
+<li>canvasContext is the 2d context of the full screen canvas element (only 2d is supported ATM)</li>
+<li>state is a magical state object you can use to store data that should persist between loop runs
+
+<ul>
+<li>state has an init-function that let's you init values if they are not yes existent.</li>
+</ul>
+</li>
+<li>analyserData is a 16 element float32array of fft data from the sound source. do your thang.</li>
+</ul><p>pattern(context, outlet, start_times, step_time, state, data)</p>
+
+<ul>
+<li>pattern will be called once every time the pattern loops. The pattern is (currently) a 16 step</li>
+<li>pattern with every step matching a 1/16 note.</li>
+<li>
+<em>context</em> is the audioContext</li>
+<li>
+<em>outlet</em> is the audio destination your webaudio objects should ultimately connect to</li>
+<li>
+<em>start_times</em> is an array of start times for the notes in the pattern</li>
+<li>
+<em>step_time</em> is the length of a single step</li>
+<li>
+<em>state</em> is the beforementioned state object (note that the canvas loop and the pattern loop indeed share this object)</li>
+<li>
+<em>data</em> is unused and will most probably contain prefabbed samples etc.</li>
+</ul><h3>Sound Tools</h3>
+
+<ul>
+<li>LC.NOTES contains the MIDI array of note frequencies, so LC.NOTES[0] gives you the lowest C</li>
+<li>
+<p>LC.LEnv is an Envelope generator created with linearRamps.</p>
+
+<ul>
+<li>Signature is (param,time,length,min, max,attack,decay,sustain,release)</li>
+<li>a,d,r are expressed as fractions of length</li>
+<li>sustain as fraction of max</li>
+</ul>
+</li>
+<li><p>LC.S is an object containing all loaded samples. The list is currently hardcoded in livecoder.coffee</p></li>
+<li><p>All samples willl be loaded automatically and can be played as soon as they are completely decoded.</p></li>
+<li>
+<p>LC.S. is a sample object that has two public methods</p>
+
+<ul>
+<li>play(outlet, time, length, rate)</li>
+<li>playGrain(outlet, time, offset, length, rate)</li>
+</ul>
+</li>
+<li>
+<p>LC.DelayLine - a configurable delay line that can be used as an output</p>
+
+<ul>
+<li>DelayLine.delayTime</li>
+<li>DelayLine.filterFrequency</li>
+<li>DelayLine.feedback</li>
+</ul>
+</li>
+</ul><h3>Planned sound tools</h3>
+
+<ul>
+<li>LC.ReverbLine - a configurable reverb line that can be used as an output</li>
+</ul>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/halfbyte">halfbyte</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-11165670-6");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
