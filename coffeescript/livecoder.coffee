@@ -9,8 +9,27 @@ LC.NOTES = [ 16.35,    17.32,    18.35,    19.45,    20.6,     21.83,    23.12, 
            2093,     2217.46,  2349.32,  2489.02,  2637.02,  2793.83,  2959.96,  3135.96,  3322.44,  3520,  3729.31,  3951.07,
            4186.01,  4434.92,  4698.64,  4978 ]
 
+
+############### CANVAS HELPERS ###################
+
+LC.hsla = (h,s,l,a=1.0) ->
+  h = h % 360;
+  return "hsla(#{h},#{s}%,#{l}%,#{a})"
+
+LC.cls = (c)->
+  c.clearRect(0,0,c.width, c.height)
+
+LC.centerText = (c, text) ->
+  c.textBaseline = "middle"
+
+  m = c.measureText(text)
+  x = (c.width / 2) - (m.width / 2)
+  y = (c.height / 2)
+  c.fillText(text, x, y, c.width)
+
+############### SOUND HELPERS ###################
+
 LC.LEnv = (p,t,l,min, max,a,d,s,r) ->
-  console.log("ENV", t, l, min, max, a, d, s, r);
   return if s < 0 or s > 1
   p.setValueAtTime(min, t)
   p.linearRampToValueAtTime(max, t + (a*l))
@@ -175,6 +194,7 @@ class Delay
 class ImageList
   imageLocations:
     'badge': 'images/moz-shadow-badge.png'
+    'book': 'images/tspa_jumpstart.jpg'
   constructor: ->
     for name, url of @imageLocations
       @[name] = new Image();
@@ -288,6 +308,14 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       @updateKeyList()
 
 
+    load_from_hash: =>
+      console.log("load from hash #{location.hash}")
+      if location.hash != ''
+        key = location.hash.substr(1)
+        @load(key)
+      else
+        @load('default')
+
     initEditor: ->
       @editor = ace.edit("editor")
       @editor.setTheme("ace/theme/monokai")
@@ -295,13 +323,14 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       @editor.container.addEventListener("keydown", @keydown, true)
       @editor.on('focus', @activate)
 
-      @load('default')
+
+
+      @load_from_hash()
 
       @$keylist.on 'click', "li[data-action='hide']", (e) =>
         @$keylist.toggleClass('hidden')
         @editor.focus()
-      @$keylist.on 'click', 'li[data-key]', (e) =>
-        @load($(e.target).data('key'))
+      $(window).bind 'hashchange', @load_from_hash
     load: (key) ->
       db.get key, (data) =>
         if data
@@ -312,7 +341,7 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       @$keylist.html("<li data-action='hide'>&lt;&lt;&lt;</li>")
       db.keys (keys) =>
         keys.forEach (key) =>
-          @$keylist.append("<li data-key='#{key}'>#{key}</li>")
+          @$keylist.append("<li data-key='#{key}'><a href='##{key}'>#{key}</a></li>")
 
     save: ->
       code = @editor.getValue()
@@ -353,8 +382,6 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
         if e.keyCode == 83
           e.preventDefault()
           @save()
-        else
-          console.log(e)
       @activate()
 
 

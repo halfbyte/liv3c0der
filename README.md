@@ -1,10 +1,17 @@
 ## liv3c0der
 
-A try to build an audiovisual live coding environment that's running in the browser
+An experiment to try to build an audiovisual live coding environment running in the browser
+
+Since this was built for the very specific purpose of jamming with other musicians, it is a very opinionated tool at the moment. I'm not sure what it will be evolve into, but here's what it is right now:
+
+* A simple, code based pattern sequencer that has up to 16 steps, shuffle and allows you to express the beat in either declarate
+* A set of tools, currently crudely exposed through a global object, that allow for sample playing, synthesizer type stuff and a fixed set of predefined effects
+* A fullscreen, initialized 2D canvas that can be drawn on in requestAnimationFrame speed.
+* Automatic collection of Samples (for Audio) and Images (for canvas)
 
 Documentation is sparse, please look at the examples.
 
-Currently, the live code should contain two methods:
+Currently, the live code contains two methods:
 
 draw(canvasContext,state, analyzerData)
 * draw will be called within the canvas loop that is based on requestAnimationFrame
@@ -41,10 +48,21 @@ pattern(context, outlet, start_times, step_time, state, data)
   * DelayLine.delayTime
   * DelayLine.filterFrequency
   * DelayLine.feedback
-
-
-### Planned sound tools
-
-
 * LC.ReverbLine - a configurable reverb line that can be used as an output
+  * ReverbLine.mix - mix ratio between original and reverb signal.
+
+
+* LC.BassSynth (will be renamed!) is a dual oscillator synth with full ENVs for amp and filter
+* LC.AcidSynth is a single osc synth with a double filter for enhanced squeakability. It has a more simple
+  envelope.
+* Tuna. See [here](https://github.com/Dinahmoe/tuna)
+
+### Canvas Tools
+
+* LC.I.<imagename> is an Image() instance that can be used for context.drawImage
+
+### Planned canvas tools
+
+* color helpers to make color constructions more easy.
+
 

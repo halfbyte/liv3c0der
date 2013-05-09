@@ -65,6 +65,9 @@ body {
     padding: 5px;
     width: 180px;
 }
+#keylist li a {
+    color: #fff;
+}
 #keylist li:first-child {
     text-align: right;
     width: 200px;
