@@ -9,7 +9,6 @@ LC.NOTES = [ 16.35,    17.32,    18.35,    19.45,    20.6,     21.83,    23.12, 
            2093,     2217.46,  2349.32,  2489.02,  2637.02,  2793.83,  2959.96,  3135.96,  3322.44,  3520,  3729.31,  3951.07,
            4186.01,  4434.92,  4698.64,  4978 ]
 
-
 ############### CANVAS HELPERS ###################
 
 LC.clamp = (v, min, max) ->
@@ -68,8 +67,6 @@ class ImageList
     for name, url of @imageLocations
       @[name] = new Image();
       @[name].src = url;
-
-
 
 class State
   init: (k,v) =>

@@ -1,53 +1,35 @@
-# NOTES
+# liv3c0der cheat sheet
 
-## Intro 2-3 Minuten
+## State
 
-* Whoami (default)
-* Book   (book)
-
-## Web Audio API (5 Minuten)
-
-* Web Audio
-* Context
-* Concept of Time
-* Nodes
-* Demo
-  * new webkitAudioContext()
-  * osc
-  * noteOn/Off
-  * Time!
-
-## Music was my first love (5 Minuten)
-* Wer spielt instrument
-* Musik als Ausgleich
-* Mein Zugang zur Musik
-
-## A story of live coding (10 Minuten)
-* Livecoding/Laptop music
-* SuperCollider / Impromptu
-* The Simplest Thing That Could Possibly Work
-* The 16 step pattern
-* Rhythm and Math
-* Notes and Math
-
-## Impro-Vision!
+    s.init('foo', 0)
+    s.foo++
 
 ## Effects
+
+### DelayLine
 
 * LC.DelayLine.delayTime.value
 * LC.DelayLine.feedback.value
 * LC.DelayLine.filterFrequency.value
+
+### ReverbLine
+
 * LC.ReverbLine.mix.value
 
 ## Synths
 
+### BassSynth
+
 * LC.BassSynth.flt_f
-* LC.BassSynth.flt_adsr
+* LC.BassSynth.flt_a/d/s/r
 * LC.BassSynth.flt_env
 * LC.BassSynth.flt_Q
-* LC.BassSynth.amp_adsr
+* LC.BassSynth.amp_a/d/s/r
 * LC.BassSynth.spread
 * LC.BassSynth.osc_type
+
+### AcidSynth
 
 * LC.AcidSynth.osc_type
 * LC.AcidSynth.decay
@@ -55,5 +37,29 @@
 * LC.BassSynth.flt_mod
 * LC.BassSynth.Q
 
+## Samples
 
 
+    play: (o, t, l, r=1.0, g=1.0)
+    playShot: (o, t, r=1.0, g=1.0)
+    playGrain: (o,t,offset, l, r=1.0, g=1.0)
+
+* amen
+* dub_
+  * base
+  * hhcl
+  * clapsnare
+* p_
+  * klang
+  * koki
+  * tom
+* t_
+  * base
+  * snare
+  * clap
+  * hhcl
+  * hhop
+  * ride
+  * crash
+* livecoder
+* ir_t600 (impulse response) 
