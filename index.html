@@ -10,56 +10,13 @@
 // NAME: default
 
 function draw(c, s) {
-    s.init('x',0.0);
-    s.init('d',1)
-    s.init('c', 0);
-    c.clearRect(0,0,c.width, c.height);
-
-    var i;
-    var midx = c.width/2;
-    var midy = c.height/2;
-    var size = 400;
-    s.c = 0;
-    for(i=0.0;i<10*Math.PI;i+= 0.1) {
-        c.fillStyle = "rgba(255," + Math.floor(s.c) + "," + Math.floor(255 - s.c) + ",0.1)";
-        var x = size * Math.sin((s.x * 32) + i) + midx;
-        var y = size * Math.cos((s.x) + i) + midy;
-        c.beginPath();
-        c.arc(x,y,40,0,2*Math.PI);
-        c.fill();
-        s.c = (s.c + 2) % 256;
-    }
-
-
-    s.x += 0.05;
 
 }
 // context,     outlet, times, time per step, state, data
 // should return array of functions that accept a single argument: the time
 function pattern(c, o, t, l, s, d) {
-    var i,l;
     s.init('loop',0);
-    function note(t, l, freq) {
-        var gain = c.createGainNode();
-        LC.LEnv(gain.gain, t, l, 0.0,0.5,0.02,0.3,0.5,0.2);
-        gain.connect(o);
-        var osc=c.createOscillator(); osc.frequency.value = freq; osc.connect(gain); osc.noteOn(t); osc.noteOff(t+l);
-    }
 
-    var freq = 110 * Math.pow(2,s.loop);
-
-    note(t[ 0], l*4, freq * 2);note(t[ 0], l*4, freq * 3);
-    LC.S.amen.playGrain(o, t[0], l, 0.0, 1.0);
-    LC.S.amen.playGrain(o, t[2], l, 0.22, 1.0);
-    note(t[ 4], l*0.5, 880);
-    LC.S.amen.playGrain(o, t[3], l, 0.45, 1.0);
-    note(t[ 8], l*1, 880);
-    LC.S.amen.playGrain(o, t[8], 2*l, 1.4, 2.0);
-    note(t[12], l*4, freq * 2);
-    LC.S.amen.playGrain(o, t[12], 2*l, 1.3, 1.0);
-    note(t[13], l*2, 880);
-    LC.S.amen.playGrain(o, t[14], 2*l, 1.4, 1.0);
-    note(t[14], l*1, 440);
 }
 
 </div>
@@ -69,6 +26,7 @@ function pattern(c, o, t, l, s, d) {
 <script src="/javascript/vendor/lawnchair.min.js" type="text/javascript" charset="utf-8"></script>
 <script src="/javascript/vendor/ace-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
 <script type="text/javascript" src="/javascript/vendor/tuna.js" charset="utf-8"></script>
+<script type="text/javascript" src="/javascript/audio_engine.js?v=104" charset="utf-8"></script>
 <script type="text/javascript" src="/javascript/livecoder.js?v=104" charset="utf-8"></script>
 <script type="text/javascript">LC.instance = new LC.LiveCoder('#editor', 'canvas', '#keylist');</script>
 </body>

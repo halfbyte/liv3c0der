@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>moz-shadow liv3c0der</title>
+    <link rel="stylesheet" type="text/css" href="/style.css">
+</head>
+<body>
+  <button id="play">Play</button>
+  <button id="stop">Stop</button>
+<script src="/javascript/vendor/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript" src="/javascript/audio_engine.js?v=104" charset="utf-8"></script>
+<script type="text/javascript">AE.instance = new AE.Engine();</script>
+
+
+
+<script type="text/javascript">
+$(function() {
+  
+  var counter = 0;
+  
+  var pattern = function(c, o, t, l, s) {
+    AE.ReverbLine.mix.value = 0.5;
+    AE.DelayLine.delayTime.value = l*3;
+    AE.DelayLine.filterFrequency.value = 500;
+    AE.DelayLine.feedback.value = 0.7;
+    AE.AcidSynth.Q = 2;
+
+    AE.AcidSynth.flt_f = 50;
+    AE.AcidSynth.flt_mod = 50 + Math.random() * 4000;
+    var i;
+    for (i=0;i<16;i++) {
+      if (i % 6 == 0) AE.S['t_base'].playShot(o, t[i]);
+      if (i % 6 == 4) AE.S['t_clap'].playShot(AE.REV, t[i], 0.8, 0.3);      
+      if (i % 3 == 2) AE.S['t_hhcl'].playShot(AE.DEL, t[i], 0.9, 0.5);
+      if (i % 7 == 3) AE.S['p_klang'].playShot(o, t[i], 0.6 + Math.random() * 0.8, 0.5);
+    }
+    
+    AE.AcidSynth.decay = 0.3;
+    
+    AE.AcidSynth.play(AE.ReverbLine.destination, t[0], l*4, 24);
+    AE.AcidSynth.play(AE.ReverbLine.destination, t[8], l*4, 24 + 2);
+    AE.AcidSynth.play(AE.ReverbLine.destination, t[14], l*2, 24 - 2);
+    
+    base_note = 48;
+    if (counter % 4 == 2) base_note += 4;
+    if (counter % 4 == 3) base_note += 7;
+    AE.SpreadSynth.flt_f = 100;
+    AE.SpreadSynth.spread = 20;
+    AE.SpreadSynth.flt_a = 0.5;
+    AE.SpreadSynth.flt_env = 100 + Math.random() * 8000;
+    AE.SpreadSynth.play(AE.DelayLine.destination, t[10], l*2, base_note, 0.1);
+    AE.SpreadSynth.play(AE.DelayLine.destination, t[10], l*2, base_note + 3, 0.1);
+    AE.SpreadSynth.play(AE.DelayLine.destination, t[10], l*2, base_note + 7, 0.1);
+    counter++;
+  }
+  var empty = function() {};
+  
+  $('#play').click(function() {
+    AE.instance.setPatternMethod(pattern);
+  })
+  $('#stop').click(function() {
+    AE.instance.setPatternMethod(function() {});
+  })
+});
+</script>
+
+
+</body>
+</html>
