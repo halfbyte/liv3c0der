@@ -12,6 +12,9 @@ LC.NOTES = [ 16.35,    17.32,    18.35,    19.45,    20.6,     21.83,    23.12, 
 
 ############### CANVAS HELPERS ###################
 
+LC.clamp = (v, min, max) ->
+  Math.min(Math.max(v,min), max)
+
 LC.hsla = (h,s,l,a=1.0) ->
   h = h % 360;
   return "hsla(#{h},#{s}%,#{l}%,#{a})"
@@ -27,10 +30,34 @@ LC.centerText = (c, text) ->
   y = (c.height / 2)
   c.fillText(text, x, y, c.width)
 
-############### SOUND HELPERS ###################
 
+class LeapObserver
+  constructor: ->  
+    @listeners = []
 
+  reset: ->
+    @listeners = []
 
+  traverse: (obj, path) ->
+    nextobj = obj[path[0]]
+    return null if !nextobj
+    nextpath = path.slice(1)
+    return nextobj if nextpath.length == 0
+    @traverse(nextobj, nextpath)
+    
+  attach: (obj, attr, framepath, factor, min, max) ->
+    @listeners.push({object: obj, attribute: attr, framepath: framepath, factor: factor, min: min, max: max})
+  frame: (frame) ->
+    
+    for listener in @listeners
+      value = @traverse(frame, listener.framepath)
+      continue if not value?
+      if listener.min >= 0
+        value = Math.abs(value)
+      value = LC.clamp(value * listener.factor, listener.min, listener.max)
+      listener.object[listener.attribute].value = value
+  
+    
 
 class ImageList
   imageLocations:
@@ -50,18 +77,23 @@ class State
 
 new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
   class LC.LiveCoder
-    constructor: (editor, canvas, keylist) ->
+    constructor: (editor, canvas, keylist, samplelist) ->
       
       @$el = $(editor)
       @$canvas = $(canvas)
       @$keylist = $(keylist)
+      @$samplelist = $(samplelist)
       @drawMethod = null
       @oldDrawMethod = null
       @deactTimeout = null
       @state = new State()
       @analyserData = new Uint8Array(16);
+      if Leap?
+        @leapController = new Leap.Controller();
 
-      AE.Instance = @audioEngine = new AE.Engine(@state)
+      AE.Instance = @audioEngine = new AE.Engine(@state, @sampleProgress, @samplesFinished, @sampleError)
+      $('#progress').addClass('in-progress')
+      $('#progress-label').text("Loading Samples")
       @initEditor()
       @initCanvas()
       @updateKeyList()
@@ -74,6 +106,20 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       else
         @load('default')
 
+    sampleProgress: (percent) ->
+      $('#progress-meter').val(percent)
+      console.log("Sample Progress", percent)
+
+    samplesFinished: =>
+      console.log("All Samples Loaded")
+      $('#progress').removeClass('in-progress');
+      @$samplelist.append("<li data-action='hide'>&gt;&gt;&gt;</li>")
+      for key in AE.S.names
+        @$samplelist.append("<li>#{key}</li>")
+    sampleError: (msg) =>
+      $('#progress').removeClass('in-progress');
+      @displayMessage(msg)
+
     initEditor: ->
       @editor = ace.edit("editor")
       @editor.setTheme("ace/theme/monokai")
@@ -84,6 +130,10 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
 
 
       @load_from_hash()
+
+      @$samplelist.on 'click', "li[data-action='hide']", (e) =>
+        @$samplelist.toggleClass('hidden')
+        @editor.focus()
 
       @$keylist.on 'click', "li[data-action='hide']", (e) =>
         @$keylist.toggleClass('hidden')
@@ -158,21 +208,35 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
 
       LC.I = new ImageList();
 
-      @canvasRunLoop()
+      if Leap?
+        @leapController.on 'animationFrame', @canvasRunLoop
+        @leapController.connect()
+      else
+        @canvasRunLoop()
+        
+      LC.LO = @leapObserver = new LeapObserver()
 
-    canvasRunLoop: =>
+      
+
+
+    canvasRunLoop: (frame) =>
+      if Leap?
+        @leapObserver.frame(frame)
       if @drawMethod        
         try
-          @drawMethod(@context, @state, @analyserData)
+          @audioEngine.getAnalyserData(@analyserData)
+          @drawMethod(@context, @state, @analyserData, frame)
         catch exception
-          console.log(exception)
+          @displayMessage(exception.toString() + ": " + exception.message)
           if @oldDrawMethod
             @drawMethod = @oldDrawMethod
             @drawMethod(@context, @state, @analyserData)
-      requestAnimationFrame(@canvasRunLoop)
+      if not Leap?
+        (reqestAnimationFrame||webkitRequestAnimationFrame||mozRequestAnimationFrame)(@canvasRunLoop)
 
 
     displayMessage: (message) =>
+      console.log("new Message: ", message)
       if $('.message').length == 0
         $('body').append($("<div class='message'></div>"))
       $('.message').append("<p>#{message}</p>")

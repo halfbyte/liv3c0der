@@ -21,13 +21,16 @@ function pattern(c, o, t, l, s, d) {
 
 </div>
 <canvas id="canvas"></canvas>
+<div id="progress"><div id="progress-label"></div><progress id="progress-meter" max="100"></progress></div>
 <ul id="keylist" class="hidden"></ul>
+<ul id="samplelist" class="hidden"></ul>
 <script src="/javascript/vendor/jquery.min.js" type="text/javascript" charset="utf-8"></script>
 <script src="/javascript/vendor/lawnchair.min.js" type="text/javascript" charset="utf-8"></script>
 <script src="/javascript/vendor/ace-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
 <script type="text/javascript" src="/javascript/vendor/tuna.js" charset="utf-8"></script>
+<script src="http://js.leapmotion.com/0.2.0/leap.js"></script>
 <script type="text/javascript" src="/javascript/audio_engine.js?v=104" charset="utf-8"></script>
 <script type="text/javascript" src="/javascript/livecoder.js?v=104" charset="utf-8"></script>
-<script type="text/javascript">LC.instance = new LC.LiveCoder('#editor', 'canvas', '#keylist');</script>
+<script type="text/javascript">LC.instance = new LC.LiveCoder('#editor', 'canvas', '#keylist', '#samplelist');</script>
 </body>
 </html>

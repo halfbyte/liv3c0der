@@ -20,7 +20,7 @@ body {
     top: 0;
     position: absolute;
     color: red;
-    font-size: 2em;
+    font-size: 1.6em;
     font-family: 'Courier New';
     border: 5px solid red;
     z-index: 2;
@@ -41,10 +41,23 @@ body {
     z-index: 0;
 }
 
-#keylist {
+#samplelist {
+  right: 0;
+}
+#samplelist.hidden {
+    right: -180px;
+}
+#keylist li {
+    color: #fff;
+}
+#keylist li:first-child {
+    text-align: left;
+    width: 200px;
+}
+
+#keylist, #samplelist {
     position: absolute;
     top: 100px;
-    left: 0;
     width: 200px;
     list-style-type: none;
     background: rgba(50,50,50,0.5);
@@ -53,10 +66,14 @@ body {
     opacity: 0.5;
     -webkit-transition: left 0.5s ease-in-out;
 }
+
+#keylist {
+  left: 0;
+}
 #keylist.hidden {
     left: -180px;
 }
-#keylist li {
+#keylist, #samplelist li {
     display: block;
     color: #fff;
     background: rgba(70,70,70,0.5);
@@ -72,3 +89,7 @@ body {
     text-align: right;
     width: 200px;
 }
+
+#progress.in-progress { -webkit-transform: translate3d(0, 100px, 0); }
+#progress { color: #fff; border-radius: 10px; -webkit-transition: -webkit-transform 1s; position: absolute; top: -100px; height: 100px; background: #111; width: 80%; margin: 0 auto;}
+#progress progress { width: 100%; }

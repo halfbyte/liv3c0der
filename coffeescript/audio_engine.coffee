@@ -45,7 +45,7 @@ class NoiseHat
   constructor: (@context, @noise) ->
     console.log(@context, @noise)
 
-  play: (output, time, volume, decay = 20, freq = 3000, Q = 5) ->
+  play: (output, time, volume, decay = 20, freq = 6000, Q = 5) ->
     decayTime = time + (0.5 / decay);
     noise = new NoiseNode(@context, @noise)
     filter = @context.createBiquadFilter();
@@ -81,9 +81,35 @@ class DrumSynth
     sine.start(time);
     sine.stop(aDecayTime);
 
+class SnareSynth
+  constructor: (@context, @noise) ->
+    @drumsyn = new DrumSynth(@context)
+    @freq = 1000
+    @Q = 5
+  
+  play: (output, time, volume = 0.5, fDecay = 20, aDecay = 20, start = 200, end = 50) ->
+    aDecayTime = time + (1 / aDecay)
+    amp = @context.createGainNode()
+    amp.connect(output)
+    noise = new NoiseNode(@context, @noise)
+    filter = @context.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = @freq;
+    filter.Q.value = @Q;
+    noise.connect(filter)
+    
+    amp.gain.setValueAtTime(0, time);
+    amp.gain.linearRampToValueAtTime(volume, time + 0.001);
+    amp.gain.linearRampToValueAtTime(0, aDecayTime);
+    filter.connect(amp)
+    noise.start(time)
+    noise.stop(aDecayTime)
+    @drumsyn.play(output, time, volume, fDecay, aDecay, start, end)    
+
 class WubSynth
   constructor: (@context) ->
     @osc_type = 'square'
+    @lfo_type = 'sine'
     @decay = 1
     @flt_f = 200
     @flt_decay = 0.5
@@ -96,6 +122,7 @@ class WubSynth
     lfo = @context.createOscillator()
     filter = @context.createBiquadFilter()
     osc.type = @osc_type
+    lfo.type = @lfo_type
     amp = @context.createGainNode()
     lfoAmp = @context.createGainNode()
     lfo.connect(lfoAmp)
@@ -153,6 +180,56 @@ class AcidSynth
     gain.connect(destination)
     osc.noteOn(time)
     osc.noteOff(time+length)
+
+class SawSynth
+  constructor: (context) ->
+    @context = context
+
+    # Params
+    @spread = 10;
+    @osc_type = 'sawtooth'
+    @voices = 5;
+    @amp_a = 0.05;
+    @amp_d = 0.3;
+    @amp_s = 0.8;
+    @amp_r = 0.1;
+
+    @flt_a = 0.01;
+    @flt_d = 0.1;
+    @flt_s = 1.0;
+    @flt_r = 0.01;
+    @flt_f = 4000;
+    @flt_env = 3000;
+    @flt_Q = 0;
+
+  play: (destination, time, length, note, volume=0.1) ->
+    gain = @context.createGainNode();
+    filter = @context.createBiquadFilter();
+    osc = @context.createOscillator();
+    osc.type = 'sawtooth'
+    osc.frequency.value = AE.NOTES[note]
+    oscs = [osc]
+    for i in [0...@voices]
+      osc1 = @context.createOscillator()
+      osc2 = @context.createOscillator()
+      osc1.type = 'sawtooth'
+      osc2.type = 'sawtooth'
+      osc1.detune.value = @spread * i
+      osc2.detune.value = @spread * i * -1
+      osc1.frequency.value = AE.NOTES[note]
+      osc2.frequency.value = AE.NOTES[note]
+      oscs.push(osc1,osc2)
+
+    AE.LEnv(gain.gain, time, length, 0, volume, @amp_a, @amp_d, @amp_s, @amp_r)
+    AE.LEnv(filter.frequency, time, length, @flt_f, (@flt_f + @flt_env), @flt_a, @flt_d, @flt_s, @flt_r)
+    filter.Q.value = @flt_Q;
+    filter.connect(gain)
+    gain.connect(destination)
+    for osc in oscs
+      osc.connect(filter)
+      osc.start(time)
+      osc.stop(time + length)
+
 
 class SpreadSynth
   constructor: (context) ->
@@ -212,7 +289,7 @@ class Reverb
 
     @convolver = context.createConvolver()
     @convolver.connect(@mixer)
-    @convolver.buffer = AE.S.ir_t600.buffer
+    @convolver.buffer = AE.S.t600.buffer
     @destination.connect(@convolver)
     # public properties
     @mix = @mixer.gain
@@ -267,36 +344,33 @@ class Delay
 
 
 class SampleList
-  sampleLocations:
-    'amen': 'audio/amen_low.wav'
-    'dub_base': 'audio/dub-base.wav'
-    'dub_hhcl': 'audio/dub-hhcl.wav'
-    'dub_clapsnare': 'audio/dub-clapsnare.wav'
-    'ir_t600': 'audio/t600.wav'
-    'p_klang': 'audio/klang.wav'
-    'p_koki': 'audio/koki.wav'
-    'p_tom': 'audio/tom.wav'
-    't_base': 'audio/t_base.wav'
-    't_snare': 'audio/t_snare.wav'
-    't_clap': 'audio/t_clap.wav'
-    't_hhcl': 'audio/t_hhcl.wav'
-    't_hhop': 'audio/t_hhop.wav'
-    't_ride': 'audio/t_ride.wav'
-    't_crash': 'audio/t_crash.wav'
 
-
-  constructor: (audioContext, completeCallback) ->
-    @context = audioContext
+  constructor: (@audioContext, @baseUrl = "http://localhost:4567", @progressCallback = null, @completeCallback = null, @errorCallback) ->
     @callback = completeCallback
+    @names = []
     console.log(@callback)
-    for name, url of @sampleLocations
-      @[name] = new Sample(audioContext, url, @loadedCallback)
-  loadedCallback: () =>
+    $.getJSON(@baseUrl, {}, @_listLoaded).fail(@_listError)
+  _listError: () =>
+    console.log("Failed to Load Sample List");
+    @errorCallback('sample list could not be loaded, did you start the server?') if @errorCallback
+  _listLoaded: (data) =>
+    console.log(data);
+    @sampleLocations = data
+    @sampleCount = Object.keys(data).length;
+    for name, url of data
+      @[name] = new Sample(@audioContext, url, @_loadedCallback)
+      @names.push(name)
+  _loadedCallback: () =>
+    loadedCount = 0
     all_loaded = true
     for name, url of @sampleLocations
+      if @[name].loaded
+        loadedCount += 1
       all_loaded &&= @[name].loaded
+    console.log(loadedCount, @sampleCount)
+    @progressCallback(Math.round((loadedCount / @sampleCount) * 100.0)) if @progressCallback
     if all_loaded
-      @callback()
+      @completeCallback("ok") if @completeCallback
 
 class Sample
   constructor: (audioContext, url, loadedCallback) ->
@@ -351,14 +425,14 @@ class Sample
     player.noteGrainOn(t,offset,l)
 
 class AE.Engine
-  constructor: (@state)->
+  constructor: (@state, @sampleProgressCallback = null, @sampleFinishedCallback = null, @sampleErrorCallback = null) ->
     @tempo = 120
     @steps = 16
     @groove = 0;
     @audioContext = new webkitAudioContext()
     console.log("PSI", @postSampleInit)
     console.log("GAD", @getAnalyserData)
-    AE.S = new SampleList(@audioContext, @postSampleInit)
+    AE.S = new SampleList(@audioContext, "http://localhost:4567/index.json", @sampleProgressCallback, @postSampleInit, @sampleErrorCallback)
     @analyser = @audioContext.createAnalyser();
     @analyser.fftSize = 64;
     @analyser.smoothingTimeConstant = 0.5;
@@ -390,9 +464,10 @@ class AE.Engine
         
 
     AE.NoiseHat = new NoiseHat(@audioContext, @noiseBuffer)
-    AE.DrumSynth = new DrumSynth(@audioContext, @noiseBuffer)
+    AE.DrumSynth = new DrumSynth(@audioContext)
+    AE.SnareSynth = new SnareSynth(@audioContext, @noiseBuffer)
     
-
+    AE.SawSynth = new SawSynth(@audioContext)
     AE.SpreadSynth = new SpreadSynth(@audioContext)
     AE.AcidSynth = new AcidSynth(@audioContext)
     AE.WubSynth = new WubSynth(@audioContext)
@@ -401,17 +476,16 @@ class AE.Engine
     @nextPatternTime = 0
     console.log("AE init done")
 
-  getAnalyserData: =>
-    analyserData = new Uint8Array(16)
-    @analyser.getByteFrequencyData(analyserData)
-    analyserData
+  getAnalyserData: (data) =>
+    @analyser.getByteFrequencyData(data)
+    data
 
   postSampleInit: =>
     AE.ReverbLine = new Reverb(@audioContext)
     AE.ReverbLine.connect(@masterGain)
     
     AE.REV = AE.ReverbLine.destination
-    
+    @sampleFinishedCallback() if @sampleFinishedCallback
     @audioRunLoop()
   
   setPatternMethod: (patternMethod) =>
