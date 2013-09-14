@@ -1,11 +1,6 @@
-## Ideas for visualisation
-
-hsla() helper method (mal nachsehen was es da alles schon gibt an abstraktionen)
-
 ## Ideas for sound
 
 More effects. Effects as Instances that can be plugged.
-
 
 ## UI/General
 

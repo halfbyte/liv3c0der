@@ -204,7 +204,7 @@
         var _this = this;
 
         this.editor = ace.edit("editor");
-        this.editor.setTheme("ace/theme/github");
+        this.editor.setTheme("ace/theme/monokai");
         this.editor.getSession().setMode("ace/mode/javascript");
         this.editor.container.addEventListener("keydown", this.keydown, true);
         this.editor.on('focus', this.activate);

@@ -30,39 +30,78 @@ pattern(context, outlet, start_times, step_time, state, data)
 * *state* is the beforementioned state object (note that the canvas loop and the pattern loop indeed share this object)
 * *data* is unused and will most probably contain prefabbed samples etc.
 
+### Sample Server
+
+liv3c0der does no longer have any audio assets included. You need to start a seperate compontent to serve assets.
+
+The idea is that hosting samples, especially in high quality, non-lossy-compressed versions on remote servers is possible but not desirable. 
+
+Also this makes using your own samples in liv3c0der really, really easy.
+
+I have a working proof-of-concept written in ruby using sinatra at https://github.com/halfbyte/sample-server.
+
+I would love to turn this into a npm binary or something. Any takers?
+
+#### Protocol
+
+Just serve an index at (this is configurable) http://localhost:4567/index.json that looks like this:
+
+{
+  "sample_name": "http://sample-url",
+  "sample-name": "..."
+}
+
+The only other requirement that you set the "Access-Control-Allow-Origin" header to "*" or wherever you serve liv3c0der, because of CORS.
+
+liv3c0der will then load the index and will try to load all urls specified in the index. You can then access the sample list at AE.S.
 
 ### Sound Tools
 
-* LC.NOTES contains the MIDI array of note frequencies, so LC.NOTES[0] gives you the lowest C
-* LC.LEnv is an Envelope generator created with linearRamps.
+AudioEngine is both responsible for scheduling the events and a growing collection of more high level building blocks.
+
+This is an almost complete list of the high level bulding blocks, but you probably need to read the source to learn how to use each one.
+
+* AE.NOTES contains the MIDI array of note frequencies, so LC.NOTES[0] gives you the lowest C
+* AE.LEnv is an Envelope generator created with linearRamps.
   * Signature is (param,time,length,min, max,attack,decay,sustain,release)
   * a,d,r are expressed as fractions of length
   * sustain as fraction of max
 
-* LC.S is an object containing all loaded samples. The list is currently hardcoded in livecoder.coffee
+* AE.S is an object containing all loaded samples. See above.
 * All samples willl be loaded automatically and can be played as soon as they are completely decoded.
-* LC.S.<samplename> is a sample object that has two public methods
+* AE.S['<samplename>'] or AE.S.<samplename> is a sample object that has three public methods:
   * play(outlet, time, length, rate)
   * playGrain(outlet, time, offset, length, rate)
-* LC.DelayLine - a configurable delay line that can be used as an output
+  * playShot(outlet, time, rate, volume)
+* AE.DelayLine - a configurable delay line that can be used as an output
   * DelayLine.delayTime
   * DelayLine.filterFrequency
   * DelayLine.feedback
-* LC.ReverbLine - a configurable reverb line that can be used as an output
-  * ReverbLine.mix - mix ratio between original and reverb signal.
+* AE.ReverbLine - a configurable reverb line that can be used as an output
+  * ReverbLine.mix - mix ratio between original and reverb signal. This is the AudioPAram
 
+* AE.DEL and AE.REV are shortcuts for the inputs of DelayLine and ReverbLine.
 
-* LC.BassSynth (will be renamed!) is a dual oscillator synth with full ENVs for amp and filter
-* LC.AcidSynth is a single osc synth with a double filter for enhanced squeakability. It has a more simple
-  envelope.
-* Tuna. See [here](https://github.com/Dinahmoe/tuna)
+* AE.SpreadSynth (will be renamed!) is a dual oscillator synth with full ENVs for amp and filter
+* AE.AcidSynth is a single osc synth with a double filter for enhanced squeakability. It has a more simple envelope.
+* AE.SawSynth is a configurable "Super Saw" synth with a large number or Sawtooth oscillators all slightly detuned.
+* AE.WubSynth is your one-stop-shop Dubstep synth. You wish. It's just a square wave with a lfo driven lowpass.
+
+* AE.DrumSynth is a single oscillator drum synthesizer capable of rendering convincing synthetic bass drums but also toms and random bleeps.
+* AE.SnareSynth is a DrumSynth with filtered white noise on top to generate simple snares
+* AE.NoiseHat is a simple noise based hihat/cymbal synth that sounds best with high resonance.
+
+* AE.Instance.tempo can be set to the desired tempo in BPM.
+* AE.Instance.groove can be set to any value between 0 and 1 to delay each second step in a pattern by a certain percentage to create a shuffled rythm.
+
+* AE.Tuna. See [here](https://github.com/Dinahmoe/tuna), please let it be Tuna. AE.Tuna is an initialized Tuna instance.
 
 ### Canvas Tools
 
+This also needs a way to serve images from the outside. Currently the image list is still hardcoded.
+
 * LC.I.<imagename> is an Image() instance that can be used for context.drawImage
-
-### Planned canvas tools
-
-* color helpers to make color constructions more easy.
-
+* LC.hsla is a simple utility to not deal with string concatenation when creating colors for the canvas
+* LC.cls clears the canvas
+* LC.centerText centers a given text on the screen
 
