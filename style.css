@@ -1,5 +1,5 @@
 body {
-    background: red;
+    background: #000;
     font-family: "Helvetica Neue", Helvetica, Geneva, sans-serif;
 }
 #editor {
@@ -37,7 +37,7 @@ body {
     position: absolute;
     top: 0; left:0; right: 0; bottom: 0;
     width: 100%; height: 100%;
-    background-color: #000;
+    background-color: #fff;
     z-index: 0;
 }
 

@@ -74,6 +74,9 @@
     NoiseHat.prototype.play = function(output, time, volume, decay, freq, Q) {
       var amp, decayTime, filter, noise;
 
+      if (volume == null) {
+        volume = 0.1;
+      }
       if (decay == null) {
         decay = 20;
       }
@@ -152,8 +155,8 @@
       this.context = context;
       this.noise = noise;
       this.drumsyn = new DrumSynth(this.context);
-      this.freq = 1000;
-      this.Q = 5;
+      this.flt_f = 1000;
+      this.flt_Q = 5;
     }
 
     SnareSynth.prototype.play = function(output, time, volume, fDecay, aDecay, start, end) {
@@ -180,8 +183,8 @@
       noise = new NoiseNode(this.context, this.noise);
       filter = this.context.createBiquadFilter();
       filter.type = "lowpass";
-      filter.frequency.value = this.freq;
-      filter.Q.value = this.Q;
+      filter.frequency.value = this.flt_f;
+      filter.Q.value = this.flt_Q;
       noise.connect(filter);
       amp.gain.setValueAtTime(0, time);
       amp.gain.linearRampToValueAtTime(volume, time + 0.001);
@@ -201,13 +204,13 @@
       this.context = context;
       this.osc_type = 'square';
       this.lfo_type = 'sine';
-      this.decay = 1;
+      this.decay = 0.9;
       this.flt_f = 200;
-      this.flt_decay = 0.5;
-      this.flt_mod = 2000;
-      this.flt_lfo_mod = 0.5;
-      this.mod_f = 200;
-      this.Q = 10;
+      this.flt_decay = 0.8;
+      this.flt_mod = 500;
+      this.flt_lfo_mod = 500;
+      this.lfo_f = 200;
+      this.flt_Q = 10;
     }
 
     WubSynth.prototype.play = function(destination, time, length, note, volume) {
@@ -226,13 +229,13 @@
       lfo.connect(lfoAmp);
       lfoAmp.connect(filter.frequency);
       osc.frequency.value = AE.NOTES[note];
-      filter.Q.value = this.Q;
+      filter.Q.value = this.flt_Q;
       filter.frequency.setValueAtTime(this.flt_f + this.flt_mod, time);
       filter.frequency.linearRampToValueAtTime(this.flt_f + this.flt_mod, time + this.flt_decay);
       osc.connect(filter);
       filter.connect(amp);
       amp.connect(destination);
-      lfo.frequency.value = this.mod_f;
+      lfo.frequency.value = this.lfo_f;
       lfoAmp.gain.value = this.flt_lfo_mod;
       amp.gain.setValueAtTime(0, time);
       amp.gain.linearRampToValueAtTime(volume, time + 0.001);
@@ -260,7 +263,7 @@
       this.decay = 0.6;
       this.flt_f = 300;
       this.flt_mod = 4000;
-      this.Q = 20;
+      this.flt_Q = 10;
     }
 
     AcidSynth.prototype.play = function(destination, time, length, note, volume) {
@@ -278,8 +281,8 @@
       AE.LEnv(gain.gain, time, length, 0, volume, 0.01, this.decay, 0, 0);
       AE.LEnv(filter1.frequency, time, length, this.flt_f, this.flt_f + this.flt_mod, 0.01, this.decay, 0, 0);
       AE.LEnv(filter2.frequency, time, length, this.flt_f, this.flt_f + this.flt_mod, 0.01, this.decay, 0, 0);
-      filter1.Q.value = this.Q;
-      filter2.Q.value = this.Q;
+      filter1.Q.value = this.flt_Q;
+      filter2.Q.value = this.flt_Q;
       osc.connect(filter1);
       filter1.connect(filter2);
       filter2.connect(gain);
@@ -307,8 +310,8 @@
       this.flt_s = 1.0;
       this.flt_r = 0.01;
       this.flt_f = 4000;
-      this.flt_env = 3000;
-      this.flt_Q = 0;
+      this.flt_mod = 3000;
+      this.Q = 0;
     }
 
     SawSynth.prototype.play = function(destination, time, length, note, volume) {
@@ -335,8 +338,8 @@
         oscs.push(osc1, osc2);
       }
       AE.LEnv(gain.gain, time, length, 0, volume, this.amp_a, this.amp_d, this.amp_s, this.amp_r);
-      AE.LEnv(filter.frequency, time, length, this.flt_f, this.flt_f + this.flt_env, this.flt_a, this.flt_d, this.flt_s, this.flt_r);
-      filter.Q.value = this.flt_Q;
+      AE.LEnv(filter.frequency, time, length, this.flt_f, this.flt_f + this.flt_mod, this.flt_a, this.flt_d, this.flt_s, this.flt_r);
+      filter.Q.value = this.Q;
       filter.connect(gain);
       gain.connect(destination);
       _results = [];
@@ -374,7 +377,7 @@
       this.flt_s = 0.8;
       this.flt_r = 0.01;
       this.flt_f = 500;
-      this.flt_env = 2000;
+      this.flt_mod = 2000;
       this.flt_Q = 10;
     }
 
@@ -382,7 +385,7 @@
       var filter, gain, osc1, osc2;
 
       if (volume == null) {
-        volume = 0.2;
+        volume = 0.1;
       }
       gain = this.context.createGainNode();
       filter = this.context.createBiquadFilter();
@@ -395,7 +398,7 @@
       osc1.frequency.value = AE.NOTES[note];
       osc2.frequency.value = AE.NOTES[note];
       AE.LEnv(gain.gain, time, length, 0, volume, this.amp_a, this.amp_d, this.amp_s, this.amp_r);
-      AE.LEnv(filter.frequency, time, length, this.flt_f, this.flt_f + this.flt_env, this.flt_a, this.flt_d, this.flt_s, this.flt_r);
+      AE.LEnv(filter.frequency, time, length, this.flt_f, this.flt_f + this.flt_mod, this.flt_a, this.flt_d, this.flt_s, this.flt_r);
       filter.Q.value = this.flt_Q;
       osc1.connect(filter);
       osc2.connect(filter);
@@ -417,7 +420,7 @@
       this.destination = context.createGainNode();
       this.destination.gain.value = 1.0;
       this.mixer = context.createGainNode();
-      this.mixer.gain.value = 0.5;
+      this.mixer.gain.value = 0.3;
       this.convolver = context.createConvolver();
       this.convolver.connect(this.mixer);
       this.convolver.buffer = AE.S.t600.buffer;
@@ -599,7 +602,7 @@
         r = 1.0;
       }
       if (g == null) {
-        g = 1.0;
+        g = 0.4;
       }
       if (!this.loaded) {
         return;
@@ -616,7 +619,7 @@
         r = 1.0;
       }
       if (g == null) {
-        g = 1.0;
+        g = 0.4;
       }
       if (!this.loaded) {
         return;
@@ -632,7 +635,7 @@
         r = 1.0;
       }
       if (g == null) {
-        g = 1.0;
+        g = 0.4;
       }
       if (!this.loaded) {
         return;

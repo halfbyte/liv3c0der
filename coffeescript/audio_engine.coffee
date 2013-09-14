@@ -45,7 +45,7 @@ class NoiseHat
   constructor: (@context, @noise) ->
     console.log(@context, @noise)
 
-  play: (output, time, volume, decay = 20, freq = 6000, Q = 5) ->
+  play: (output, time, volume=0.1, decay = 20, freq = 6000, Q = 5) ->
     decayTime = time + (0.5 / decay);
     noise = new NoiseNode(@context, @noise)
     filter = @context.createBiquadFilter();
@@ -84,8 +84,8 @@ class DrumSynth
 class SnareSynth
   constructor: (@context, @noise) ->
     @drumsyn = new DrumSynth(@context)
-    @freq = 1000
-    @Q = 5
+    @flt_f = 1000
+    @flt_Q = 5
   
   play: (output, time, volume = 0.5, fDecay = 20, aDecay = 20, start = 200, end = 50) ->
     aDecayTime = time + (1 / aDecay)
@@ -94,8 +94,8 @@ class SnareSynth
     noise = new NoiseNode(@context, @noise)
     filter = @context.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.value = @freq;
-    filter.Q.value = @Q;
+    filter.frequency.value = @flt_f;
+    filter.Q.value = @flt_Q;
     noise.connect(filter)
     
     amp.gain.setValueAtTime(0, time);
@@ -110,13 +110,13 @@ class WubSynth
   constructor: (@context) ->
     @osc_type = 'square'
     @lfo_type = 'sine'
-    @decay = 1
+    @decay = 0.9
     @flt_f = 200
-    @flt_decay = 0.5
-    @flt_mod = 2000
-    @flt_lfo_mod = 0.5
-    @mod_f = 200;
-    @Q = 10
+    @flt_decay = 0.8
+    @flt_mod = 500
+    @flt_lfo_mod = 500
+    @lfo_f = 200;
+    @flt_Q = 10
   play: (destination, time, length, note, volume = 0.2) ->
     osc = @context.createOscillator()
     lfo = @context.createOscillator()
@@ -128,13 +128,13 @@ class WubSynth
     lfo.connect(lfoAmp)
     lfoAmp.connect(filter.frequency)
     osc.frequency.value = AE.NOTES[note]
-    filter.Q.value = @Q
+    filter.Q.value = @flt_Q
     filter.frequency.setValueAtTime(@flt_f + @flt_mod, time)
     filter.frequency.linearRampToValueAtTime(@flt_f + @flt_mod, time + @flt_decay)
     osc.connect(filter)
     filter.connect(amp)
     amp.connect(destination)
-    lfo.frequency.value = @mod_f
+    lfo.frequency.value = @lfo_f
     lfoAmp.gain.value = @flt_lfo_mod
 
     amp.gain.setValueAtTime(0, time);
@@ -158,7 +158,7 @@ class AcidSynth
     @decay = 0.6;
     @flt_f = 300;
     @flt_mod = 4000;
-    @Q = 20;
+    @flt_Q = 10;
 
   play: (destination, time, length, note, volume = 0.2) ->
     gain = @context.createGainNode();
@@ -172,8 +172,8 @@ class AcidSynth
     AE.LEnv(filter1.frequency, time, length, @flt_f, @flt_f + @flt_mod, 0.01, @decay, 0, 0)
     AE.LEnv(filter2.frequency, time, length, @flt_f, @flt_f + @flt_mod, 0.01, @decay, 0, 0)
 
-    filter1.Q.value = @Q
-    filter2.Q.value = @Q
+    filter1.Q.value = @flt_Q
+    filter2.Q.value = @flt_Q
     osc.connect(filter1)
     filter1.connect(filter2)
     filter2.connect(gain)
@@ -199,8 +199,8 @@ class SawSynth
     @flt_s = 1.0;
     @flt_r = 0.01;
     @flt_f = 4000;
-    @flt_env = 3000;
-    @flt_Q = 0;
+    @flt_mod = 3000;
+    @Q = 0;
 
   play: (destination, time, length, note, volume=0.1) ->
     gain = @context.createGainNode();
@@ -221,8 +221,8 @@ class SawSynth
       oscs.push(osc1,osc2)
 
     AE.LEnv(gain.gain, time, length, 0, volume, @amp_a, @amp_d, @amp_s, @amp_r)
-    AE.LEnv(filter.frequency, time, length, @flt_f, (@flt_f + @flt_env), @flt_a, @flt_d, @flt_s, @flt_r)
-    filter.Q.value = @flt_Q;
+    AE.LEnv(filter.frequency, time, length, @flt_f, (@flt_f + @flt_mod), @flt_a, @flt_d, @flt_s, @flt_r)
+    filter.Q.value = @Q;
     filter.connect(gain)
     gain.connect(destination)
     for osc in oscs
@@ -253,10 +253,10 @@ class SpreadSynth
     @flt_s = 0.8;
     @flt_r = 0.01;
     @flt_f = 500;
-    @flt_env = 2000;
+    @flt_mod = 2000;
     @flt_Q = 10;
 
-  play: (destination, time, length, note, volume=0.2) ->
+  play: (destination, time, length, note, volume=0.1) ->
     gain = @context.createGainNode();
     filter = @context.createBiquadFilter();
     osc1 = @context.createOscillator();
@@ -268,7 +268,7 @@ class SpreadSynth
     osc1.frequency.value = AE.NOTES[note]
     osc2.frequency.value = AE.NOTES[note]
     AE.LEnv(gain.gain, time, length, 0, volume, @amp_a, @amp_d, @amp_s, @amp_r)
-    AE.LEnv(filter.frequency, time, length, @flt_f, (@flt_f + @flt_env), @flt_a, @flt_d, @flt_s, @flt_r)
+    AE.LEnv(filter.frequency, time, length, @flt_f, (@flt_f + @flt_mod), @flt_a, @flt_d, @flt_s, @flt_r)
     filter.Q.value = @flt_Q;
     osc1.connect(filter)
     osc2.connect(filter)
@@ -285,7 +285,7 @@ class Reverb
     @destination = context.createGainNode();
     @destination.gain.value = 1.0
     @mixer = context.createGainNode()
-    @mixer.gain.value = 0.5
+    @mixer.gain.value = 0.3
 
     @convolver = context.createConvolver()
     @convolver.connect(@mixer)
@@ -410,16 +410,16 @@ class Sample
     gain.connect(o)
     player
 
-  play: (o, t, l, r=1.0, g=1.0) ->
+  play: (o, t, l, r=1.0, g=0.4) ->
     return unless @loaded
     player = @makeBufferSource(o,r, g)
     player.noteOn(t)
     player.noteOff(t + l)
-  playShot: (o, t, r=1.0, g=1.0) ->
+  playShot: (o, t, r=1.0, g=0.4) ->
     return unless @loaded
     player = @makeBufferSource(o,r, g)
     player.noteOn(t)
-  playGrain: (o,t,offset, l, r=1.0, g=1.0) ->
+  playGrain: (o,t,offset, l, r=1.0, g=0.4) ->
     return unless @loaded
     player = @makeBufferSource(o,r, g)
     player.noteGrainOn(t,offset,l)

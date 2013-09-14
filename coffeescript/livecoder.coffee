@@ -47,8 +47,9 @@ class LeapObserver
     
   attach: (obj, attr, framepath, factor, min, max) ->
     @listeners.push({object: obj, attribute: attr, framepath: framepath, factor: factor, min: min, max: max})
-  frame: (frame) ->
     
+  frame: (frame) ->
+    @lastFrame = frame
     for listener in @listeners
       value = @traverse(frame, listener.framepath)
       continue if not value?
@@ -122,7 +123,7 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
 
     initEditor: ->
       @editor = ace.edit("editor")
-      @editor.setTheme("ace/theme/monokai")
+      @editor.setTheme("ace/theme/github")
       @editor.getSession().setMode("ace/mode/javascript")
       @editor.container.addEventListener("keydown", @keydown, true)
       @editor.on('focus', @activate)
@@ -163,7 +164,7 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
 
 
     deactivate: =>
-      @$el.removeClass('active');
+      # @$el.removeClass('active');
 
     activate: =>
       @$el.addClass('active');
@@ -232,7 +233,8 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
             @drawMethod = @oldDrawMethod
             @drawMethod(@context, @state, @analyserData)
       if not Leap?
-        (reqestAnimationFrame||webkitRequestAnimationFrame||mozRequestAnimationFrame)(@canvasRunLoop)
+        (requestAnimationFrame||webkitRequestAnimationFrame||mozRequestAnimationFrame)(@canvasRunLoop)
+
 
 
     displayMessage: (message) =>

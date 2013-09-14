@@ -70,6 +70,7 @@
     LeapObserver.prototype.frame = function(frame) {
       var listener, value, _i, _len, _ref, _results;
 
+      this.lastFrame = frame;
       _ref = this.listeners;
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -203,7 +204,7 @@
         var _this = this;
 
         this.editor = ace.edit("editor");
-        this.editor.setTheme("ace/theme/monokai");
+        this.editor.setTheme("ace/theme/github");
         this.editor.getSession().setMode("ace/mode/javascript");
         this.editor.container.addEventListener("keydown", this.keydown, true);
         this.editor.on('focus', this.activate);
@@ -258,9 +259,7 @@
         return this.updateKeyList();
       };
 
-      LiveCoder.prototype.deactivate = function() {
-        return this.$el.removeClass('active');
-      };
+      LiveCoder.prototype.deactivate = function() {};
 
       LiveCoder.prototype.activate = function() {
         this.$el.addClass('active');
@@ -352,7 +351,7 @@
           }
         }
         if (typeof Leap === "undefined" || Leap === null) {
-          return (reqestAnimationFrame || webkitRequestAnimationFrame || mozRequestAnimationFrame)(this.canvasRunLoop);
+          return (requestAnimationFrame || webkitRequestAnimationFrame || mozRequestAnimationFrame)(this.canvasRunLoop);
         }
       };
 
