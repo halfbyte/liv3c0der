@@ -415,15 +415,34 @@
   })();
 
   Reverb = (function() {
-    function Reverb(context) {
+    function Reverb(context, buffer) {
+      var decay, i, impulseL, impulseR, length, sampleRate, seconds, _i;
+
+      if (buffer == null) {
+        buffer = null;
+      }
       this.context = context;
       this.destination = context.createGainNode();
       this.destination.gain.value = 1.0;
       this.mixer = context.createGainNode();
       this.mixer.gain.value = 0.3;
+      if (!buffer) {
+        console.log("No buffer given, falling back on synthetic one");
+        seconds = 2;
+        sampleRate = context.sampleRate;
+        length = sampleRate * seconds;
+        buffer = context.createBuffer(2, length, sampleRate);
+        impulseL = buffer.getChannelData(0);
+        impulseR = buffer.getChannelData(1);
+        decay = 5;
+        for (i = _i = 0; 0 <= length ? _i < length : _i > length; i = 0 <= length ? ++_i : --_i) {
+          impulseL[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+          impulseR[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+        }
+      }
       this.convolver = context.createConvolver();
       this.convolver.connect(this.mixer);
-      this.convolver.buffer = AE.S.t600.buffer;
+      this.convolver.buffer = buffer;
       this.destination.connect(this.convolver);
       this.mix = this.mixer.gain;
     }
@@ -656,7 +675,9 @@
       this.sampleErrorCallback = sampleErrorCallback != null ? sampleErrorCallback : null;
       this.audioRunLoop = __bind(this.audioRunLoop, this);
       this.setPatternMethod = __bind(this.setPatternMethod, this);
+      this.sampleLoadError = __bind(this.sampleLoadError, this);
       this.postSampleInit = __bind(this.postSampleInit, this);
+      this.lateInit = __bind(this.lateInit, this);
       this.getAnalyserData = __bind(this.getAnalyserData, this);
       this.tempo = 120;
       this.steps = 16;
@@ -664,7 +685,7 @@
       this.audioContext = new webkitAudioContext();
       console.log("PSI", this.postSampleInit);
       console.log("GAD", this.getAnalyserData);
-      AE.S = new SampleList(this.audioContext, "http://localhost:4567/index.json", this.sampleProgressCallback, this.postSampleInit, this.sampleErrorCallback);
+      AE.S = new SampleList(this.audioContext, "http://localhost:4567/index.json", this.sampleProgressCallback, this.postSampleInit, this.sampleLoadError);
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 64;
       this.analyser.smoothingTimeConstant = 0.5;
@@ -712,14 +733,27 @@
       return data;
     };
 
-    Engine.prototype.postSampleInit = function() {
-      AE.ReverbLine = new Reverb(this.audioContext);
+    Engine.prototype.lateInit = function() {
+      AE.ReverbLine = new Reverb(this.audioContext, this.reverbBuffer);
       AE.ReverbLine.connect(this.masterGain);
       AE.REV = AE.ReverbLine.destination;
       if (this.sampleFinishedCallback) {
         this.sampleFinishedCallback();
       }
       return this.audioRunLoop();
+    };
+
+    Engine.prototype.postSampleInit = function() {
+      this.reverbBuffer = AE.S.t600 != null ? AE.S.t600.buffer : null;
+      return this.lateInit();
+    };
+
+    Engine.prototype.sampleLoadError = function(message) {
+      this.reverbBuffer = null;
+      this.lateInit();
+      if (this.sampleErrorCallback != null) {
+        return this.sampleErrorCallback(message);
+      }
     };
 
     Engine.prototype.setPatternMethod = function(patternMethod) {

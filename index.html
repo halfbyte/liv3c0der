@@ -6,19 +6,26 @@
 </head>
 <body>
 <div id="editor">
-
 // NAME: default
-
+AE.Instance.tempo = 120;
+AE.Instance.groove = 0.0;
 function draw(c, s) {
-
+    LC.cls(c)
 }
-// context,     outlet, times, time per step, state, data
-// should return array of functions that accept a single argument: the time
+// context, outlet, times, time per step, state, data
 function pattern(c, o, t, l, s, d) {
-  s.init('loop',0);
-   
+    var i;
+    var ll=t.length;
+    s.init('loop',0);
+    AE.DelayLine.delayTime.value = l*3;
+    AE.ReverbLine.mix.value = 0.5;
+    // your code here
+    for(i=0;i<ll;i++) {
+        // if (i % 4 == 0) AE.DrumSynth.play(AE.REV, t[i], 0.8)
+        // if (i % 8 == 4) AE.SnareSynth.play(AE.REV, t[i], 0.8)
+    }
+    s.loop++;
 }
-
 </div>
 <canvas id="canvas"></canvas>
 <div id="progress"><div id="progress-label"></div><progress id="progress-meter" max="100"></progress></div>

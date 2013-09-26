@@ -280,16 +280,30 @@ class SpreadSynth
     osc2.noteOff(time+length)
 
 class Reverb
-  constructor: (context) ->
+  constructor: (context, buffer = null) ->
     @context = context
     @destination = context.createGainNode();
     @destination.gain.value = 1.0
     @mixer = context.createGainNode()
     @mixer.gain.value = 0.3
 
+    if not buffer
+      console.log("No buffer given, falling back on synthetic one")
+      # code based on https://github.com/mattdiamond/synthjs/
+      seconds = 2;
+      sampleRate = context.sampleRate
+      length = sampleRate * seconds
+      buffer = context.createBuffer(2, length, sampleRate)
+      impulseL = buffer.getChannelData(0)
+      impulseR = buffer.getChannelData(1)
+      decay = 5
+      for i in [0...length]
+        impulseL[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay)
+        impulseR[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay)
+
     @convolver = context.createConvolver()
     @convolver.connect(@mixer)
-    @convolver.buffer = AE.S.t600.buffer
+    @convolver.buffer = buffer
     @destination.connect(@convolver)
     # public properties
     @mix = @mixer.gain
@@ -432,7 +446,7 @@ class AE.Engine
     @audioContext = new webkitAudioContext()
     console.log("PSI", @postSampleInit)
     console.log("GAD", @getAnalyserData)
-    AE.S = new SampleList(@audioContext, "http://localhost:4567/index.json", @sampleProgressCallback, @postSampleInit, @sampleErrorCallback)
+    AE.S = new SampleList(@audioContext, "http://localhost:4567/index.json", @sampleProgressCallback, @postSampleInit, @sampleLoadError)
     @analyser = @audioContext.createAnalyser();
     @analyser.fftSize = 64;
     @analyser.smoothingTimeConstant = 0.5;
@@ -480,13 +494,22 @@ class AE.Engine
     @analyser.getByteFrequencyData(data)
     data
 
-  postSampleInit: =>
-    AE.ReverbLine = new Reverb(@audioContext)
+  lateInit: => 
+    AE.ReverbLine = new Reverb(@audioContext, @reverbBuffer)
     AE.ReverbLine.connect(@masterGain)
     
     AE.REV = AE.ReverbLine.destination
     @sampleFinishedCallback() if @sampleFinishedCallback
     @audioRunLoop()
+
+  postSampleInit: =>
+    @reverbBuffer = if AE.S.t600? then AE.S.t600.buffer else null
+    @lateInit();
+
+  sampleLoadError: (message) =>
+    @reverbBuffer = null
+    @lateInit()
+    @sampleErrorCallback(message) if @sampleErrorCallback?
   
   setPatternMethod: (patternMethod) =>
     @oldPatternMethod = @patternMethod
