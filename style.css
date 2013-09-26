@@ -93,3 +93,13 @@ body {
 #progress.in-progress { -webkit-transform: translate3d(0, 100px, 0); }
 #progress { color: #fff; border-radius: 10px; -webkit-transition: -webkit-transform 1s; position: absolute; top: -100px; height: 100px; background: #111; width: 80%; margin: 0 auto;}
 #progress progress { width: 100%; }
+
+.help-bubble {
+  position: fixed;
+  width: 100%;
+  padding-top: 0.5em; padding-bottom: 0.5em;
+  bottom: 1em;
+  color: yellow;
+  text-align: center;
+}
+

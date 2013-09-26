@@ -6,31 +6,37 @@
 </head>
 <body>
 <div id="editor">
-// NAME: default
-AE.Instance.tempo = 120;
-AE.Instance.groove = 0.0;
-function draw(c, s) {
-    LC.cls(c)
-}
-// context, outlet, times, time per step, state, data
-function pattern(c, o, t, l, s, d) {
-    var i;
-    var ll=t.length;
-    s.init('loop',0);
-    AE.DelayLine.delayTime.value = l*3;
-    AE.ReverbLine.mix.value = 0.5;
-    // your code here
-    for(i=0;i<ll;i++) {
-        // if (i % 4 == 0) AE.DrumSynth.play(AE.REV, t[i], 0.8)
-        // if (i % 8 == 4) AE.SnareSynth.play(AE.REV, t[i], 0.8)
-    }
-    s.loop++;
-}
+  
+  // NAME: default
+  AE.Instance.tempo = 120;
+  AE.Instance.groove = 0.0;
+  function draw(c, s) {
+      LC.cls(c)
+  }
+  // context, outlet, times, time per step, state, data
+  function pattern(c, o, t, l, s, d) {
+      var i;
+      var ll=t.length;
+      s.init('loop',0);
+      AE.DelayLine.delayTime.value = l*3;
+      AE.ReverbLine.mix.value = 0.5;
+      // your code here
+      for(i=0;i<ll;i++) {
+          // if (i % 4 == 0) AE.DrumSynth.play(AE.REV, t[i], 0.8)
+          // if (i % 8 == 4) AE.SnareSynth.play(AE.REV, t[i], 0.8)
+      }
+      s.loop++;
+  } -->
 </div>
 <canvas id="canvas"></canvas>
 <div id="progress"><div id="progress-label"></div><progress id="progress-meter" max="100"></progress></div>
 <ul id="keylist" class="hidden"></ul>
 <ul id="samplelist" class="hidden"></ul>
+<div class="help-bubble">
+  liv3c0der by <a href="https://webaudiohacks.com">halfbyte</a> / Find more info @ 
+  <a href="https://github.com/halfbyte/liv3c0der">github.com</a> 
+  <a href="#" data-close=".help-bubble">[x]</a>
+</div>
 <script src="/javascript/vendor/jquery.min.js" type="text/javascript" charset="utf-8"></script>
 <script src="/javascript/vendor/lawnchair.min.js" type="text/javascript" charset="utf-8"></script>
 <script src="/javascript/vendor/ace-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
@@ -38,6 +44,11 @@ function pattern(c, o, t, l, s, d) {
 <script src="/javascript/leap.min.js"></script>
 <script type="text/javascript" src="/javascript/audio_engine.js?v=104" charset="utf-8"></script>
 <script type="text/javascript" src="/javascript/livecoder.js?v=104" charset="utf-8"></script>
-<script type="text/javascript">LC.instance = new LC.LiveCoder('#editor', 'canvas', '#keylist', '#samplelist');</script>
+<script type="text/javascript">
+$(function() {
+  LC.instance = new LC.LiveCoder('#editor', 'canvas', '#keylist', '#samplelist');
+  $('a[data-close]').click(function(e) {e.preventDefault(); $($(this).data('close')).hide(); return false;})  
+})
+</script>
 </body>
 </html>
