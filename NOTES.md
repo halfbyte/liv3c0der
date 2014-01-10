@@ -63,3 +63,12 @@
   * crash
 * livecoder
 * ir_t600 (impulse response) 
+
+## Graphics
+
+* LC.cls(c) - clears screen
+* LC.hsla(h,s,l,[a]) - builds hsla color screen for fillstyle etc.
+  * s, l = 100, 50 full intensity
+* LC.centerText(c, text)
+* c.font = "bold 100px 'Helvetica Neue'"
+
