@@ -18,40 +18,43 @@ $(function() {
   
   var counter = 0;
   
+  var dubfilter = new AE.LfoFilter(AE.instance.audioContext, {type: 'highpass', lfo_freq: 0.2, lfo_gain: 5000, frequency: 7000});
+  console.log(dubfilter)
+  dubfilter.connect(AE.instance.audioContext.destination);
+  
+  
   var pattern = function(c, o, t, l, s) {
-    AE.ReverbLine.mix.value = 0.5;
-    AE.DelayLine.delayTime.value = l*3;
-    AE.DelayLine.filterFrequency.value = 500;
-    AE.DelayLine.feedback.value = 0.7;
-    AE.AcidSynth.Q = 2;
-
-    AE.AcidSynth.flt_f = 50;
-    AE.AcidSynth.flt_mod = 50 + Math.random() * 4000;
-    var i;
-    for (i=0;i<16;i++) {
-      if (i % 6 == 0) AE.S['t_base'].playShot(o, t[i]);
-      if (i % 6 == 4) AE.S['t_clap'].playShot(AE.REV, t[i], 0.8, 0.3);      
-      if (i % 3 == 2) AE.S['t_hhcl'].playShot(AE.DEL, t[i], 0.9, 0.5);
-      if (i % 7 == 3) AE.S['p_klang'].playShot(o, t[i], 0.6 + Math.random() * 0.8, 0.5);
-    }
     
-    AE.AcidSynth.decay = 0.3;
+  
+    AE.SpreadSynth.play(dubfilter.destination, t[10], l*16, 48, 0.1);
     
-    AE.AcidSynth.play(AE.ReverbLine.destination, t[0], l*4, 24);
-    AE.AcidSynth.play(AE.ReverbLine.destination, t[8], l*4, 24 + 2);
-    AE.AcidSynth.play(AE.ReverbLine.destination, t[14], l*2, 24 - 2);
-    
-    base_note = 48;
-    if (counter % 4 == 2) base_note += 4;
-    if (counter % 4 == 3) base_note += 7;
-    AE.SpreadSynth.flt_f = 100;
-    AE.SpreadSynth.spread = 20;
-    AE.SpreadSynth.flt_a = 0.5;
-    AE.SpreadSynth.flt_env = 100 + Math.random() * 8000;
-    AE.SpreadSynth.play(AE.DelayLine.destination, t[10], l*2, base_note, 0.1);
-    AE.SpreadSynth.play(AE.DelayLine.destination, t[10], l*2, base_note + 3, 0.1);
-    AE.SpreadSynth.play(AE.DelayLine.destination, t[10], l*2, base_note + 7, 0.1);
-    counter++;
+    // AE.ReverbLine.mix.value = 0.5;
+    // AE.DelayLine.delayTime.value = l*3;
+    // AE.DelayLine.filterFrequency.value = 500;
+    // AE.DelayLine.feedback.value = 0.7;
+    // AE.AcidSynth.Q = 2;
+    // 
+    // AE.AcidSynth.flt_f = 50;
+    // AE.AcidSynth.flt_mod = 50 + Math.random() * 4000;
+    // var i;
+    // 
+    // AE.AcidSynth.decay = 0.3;
+    // 
+    // AE.AcidSynth.play(AE.ReverbLine.destination, t[0], l*4, 24);
+    // AE.AcidSynth.play(AE.ReverbLine.destination, t[8], l*4, 24 + 2);
+    // AE.AcidSynth.play(AE.ReverbLine.destination, t[14], l*2, 24 - 2);
+    // 
+    // base_note = 48;
+    // if (counter % 4 == 2) base_note += 4;
+    // if (counter % 4 == 3) base_note += 7;
+    // AE.SpreadSynth.flt_f = 100;
+    // AE.SpreadSynth.spread = 20;
+    // AE.SpreadSynth.flt_a = 0.5;
+    // AE.SpreadSynth.flt_env = 100 + Math.random() * 8000;
+    // AE.SpreadSynth.play(AE.DelayLine.destination, t[10], l*2, base_note, 0.1);
+    // AE.SpreadSynth.play(AE.DelayLine.destination, t[10], l*2, base_note + 3, 0.1);
+    // AE.SpreadSynth.play(AE.DelayLine.destination, t[10], l*2, base_note + 7, 0.1);
+    // counter++;
   }
   var empty = function() {};
   

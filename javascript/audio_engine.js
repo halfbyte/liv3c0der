@@ -415,26 +415,27 @@
   })();
 
   Reverb = (function() {
-    function Reverb(context, buffer) {
-      var decay, i, impulseL, impulseR, length, sampleRate, seconds, _i;
+    function Reverb(context, options) {
+      var buffer, decay, i, impulseL, impulseR, length, sampleRate, seconds, _i;
 
-      if (buffer == null) {
-        buffer = null;
+      if (options == null) {
+        options = {};
       }
       this.context = context;
       this.destination = context.createGainNode();
       this.destination.gain.value = 1.0;
       this.mixer = context.createGainNode();
       this.mixer.gain.value = 0.3;
+      buffer = options.buffer;
       if (!buffer) {
         console.log("No buffer given, falling back on synthetic one");
-        seconds = 2;
+        seconds = options.length || 2;
         sampleRate = context.sampleRate;
         length = sampleRate * seconds;
         buffer = context.createBuffer(2, length, sampleRate);
         impulseL = buffer.getChannelData(0);
         impulseR = buffer.getChannelData(1);
-        decay = 5;
+        decay = options.decay || 5;
         for (i = _i = 0; 0 <= length ? _i < length : _i > length; i = 0 <= length ? ++_i : --_i) {
           impulseL[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
           impulseR[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
@@ -459,6 +460,41 @@
     };
 
     return Reverb;
+
+  })();
+
+  AE.LfoFilter = (function() {
+    function LfoFilter(context, options) {
+      var lfo_amp;
+
+      if (options == null) {
+        options = {};
+      }
+      this.context = context;
+      this.filter = context.createBiquadFilter();
+      this.lfo = context.createOscillator();
+      lfo_amp = context.createGain();
+      this.lfo.connect(lfo_amp);
+      lfo_amp.connect(this.filter.frequency);
+      this.lfo_gain = lfo_amp.gain;
+      this.lfo_freq = this.lfo.frequency;
+      this.frequency = this.filter.frequency;
+      this.Q = this.filter.Q;
+      this.lfo_freq.value = options.lfo_freq || 0.11;
+      this.lfo.type = options.lfo_type || 'sine';
+      this.lfo_gain.value = options.lfo_gain || 0;
+      this.filter.type = options.type || 'lowpass';
+      this.frequency = options.frequency || 500;
+      this.Q = options.Q || 5;
+      this.destination = this.filter;
+      this.lfo.start(0);
+    }
+
+    LfoFilter.prototype.connect = function(destination) {
+      return this.filter.connect(destination);
+    };
+
+    return LfoFilter;
 
   })();
 
@@ -734,8 +770,25 @@
     };
 
     Engine.prototype.lateInit = function() {
-      AE.ReverbLine = new Reverb(this.audioContext, this.reverbBuffer);
+      var dub_delay, dub_reverb;
+
+      AE.ReverbLine = new Reverb(this.audioContext, {
+        buffer: this.reverbBuffer,
+        decay: 5
+      });
       AE.ReverbLine.connect(this.masterGain);
+      dub_delay = new Delay(this.audioContext);
+      dub_reverb = new Reverb(this.audioContext, {
+        decay: 2,
+        length: 5
+      });
+      dub_delay.connect(dub_reverb.destination);
+      dub_reverb.connect(this.masterGain);
+      AE.DubLine = {
+        delay: dub_delay,
+        reverb: dub_reverb
+      };
+      AE.DUB = AE.DubLine.delay.destination;
       AE.REV = AE.ReverbLine.destination;
       if (this.sampleFinishedCallback) {
         this.sampleFinishedCallback();

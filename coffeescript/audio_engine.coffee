@@ -280,23 +280,26 @@ class SpreadSynth
     osc2.noteOff(time+length)
 
 class Reverb
-  constructor: (context, buffer = null) ->
+  constructor: (context, options = {}) ->
+    
     @context = context
     @destination = context.createGainNode();
     @destination.gain.value = 1.0
     @mixer = context.createGainNode()
     @mixer.gain.value = 0.3
+    
+    buffer = options.buffer
 
     if not buffer
       console.log("No buffer given, falling back on synthetic one")
       # code based on https://github.com/mattdiamond/synthjs/
-      seconds = 2;
+      seconds = options.length or 2;
       sampleRate = context.sampleRate
       length = sampleRate * seconds
       buffer = context.createBuffer(2, length, sampleRate)
       impulseL = buffer.getChannelData(0)
       impulseR = buffer.getChannelData(1)
-      decay = 5
+      decay = options.decay or 5
       for i in [0...length]
         impulseL[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay)
         impulseR[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay)
@@ -315,6 +318,39 @@ class Reverb
   connect: (dest) ->
     @mixer.connect(dest)
     @destination.connect(dest)
+
+class AE.LfoFilter
+  constructor: (context, options = {}) ->
+    @context = context
+    @filter = context.createBiquadFilter()
+    @lfo = context.createOscillator()
+    lfo_amp = context.createGain()
+    
+    @lfo.connect(lfo_amp)
+    lfo_amp.connect(@filter.frequency)
+    
+    @lfo_gain = lfo_amp.gain
+    @lfo_freq = @lfo.frequency 
+    
+    @frequency = @filter.frequency
+    @Q = @filter.Q
+        
+    @lfo_freq.value = options.lfo_freq or 0.11
+    @lfo.type = options.lfo_type or 'sine'
+    @lfo_gain.value = options.lfo_gain or 0
+    @filter.type = options.type or 'lowpass'
+    @frequency = options.frequency or 500
+    @Q = options.Q or 5
+    @destination = @filter
+    
+    @lfo.start(0)
+    
+  connect: (destination) ->
+    @filter.connect(destination)
+    
+
+    
+
 
 
 class Delay
@@ -495,9 +531,16 @@ class AE.Engine
     data
 
   lateInit: => 
-    AE.ReverbLine = new Reverb(@audioContext, @reverbBuffer)
+    AE.ReverbLine = new Reverb(@audioContext, {buffer: @reverbBuffer, decay: 5})
     AE.ReverbLine.connect(@masterGain)
     
+    dub_delay = new Delay(@audioContext)
+    dub_reverb = new Reverb(@audioContext, {decay: 2, length: 5})
+    dub_delay.connect(dub_reverb.destination)
+    dub_reverb.connect(@masterGain)
+    
+    AE.DubLine = {delay: dub_delay, reverb: dub_reverb}
+    AE.DUB = AE.DubLine.delay.destination
     AE.REV = AE.ReverbLine.destination
     @sampleFinishedCallback() if @sampleFinishedCallback
     @audioRunLoop()
