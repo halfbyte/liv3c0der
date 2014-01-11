@@ -9,60 +9,43 @@
 
 ### DelayLine
 
-* LC.DelayLine.delayTime.value
-* LC.DelayLine.feedback.value
-* LC.DelayLine.filterFrequency.value
+* AE.DelayLine.delayTime.value
+* AE.DelayLine.feedback.value
+* AE.DelayLine.filterFrequency.value
 
 ### ReverbLine
 
-* LC.ReverbLine.mix.value
+* AE.ReverbLine.mix.value
 
 ## Synths
 
 ### BassSynth
 
-* LC.BassSynth.flt_f
-* LC.BassSynth.flt_a/d/s/r
-* LC.BassSynth.flt_env
-* LC.BassSynth.flt_Q
-* LC.BassSynth.amp_a/d/s/r
-* LC.BassSynth.spread
-* LC.BassSynth.osc_type
+* AE.BassSynth.flt_f
+* AE.BassSynth.flt_a/d/s/r
+* AE.BassSynth.flt_env
+* AE.BassSynth.flt_Q
+* AE.BassSynth.amp_a/d/s/r
+* AE.BassSynth.spread
+* AE.BassSynth.osc_type
 
 ### AcidSynth
 
-* LC.AcidSynth.osc_type
-* LC.AcidSynth.decay
-* LC.BassSynth.flt_f
-* LC.BassSynth.flt_mod
-* LC.BassSynth.Q
+* AE.AcidSynth.osc_type
+* AE.AcidSynth.decay
+* AE.BassSynth.flt_f
+* AE.BassSynth.flt_mod
+* AE.BassSynth.Q
 
 ## Samples
 
+    AE.S['sample_name_] or AE.S.sample_name 
+
+is the sample object that has the following methods to play:
 
     play: (o, t, l, r=1.0, g=1.0)
     playShot: (o, t, r=1.0, g=1.0)
     playGrain: (o,t,offset, l, r=1.0, g=1.0)
-
-* amen
-* dub_
-  * base
-  * hhcl
-  * clapsnare
-* p_
-  * klang
-  * koki
-  * tom
-* t_
-  * base
-  * snare
-  * clap
-  * hhcl
-  * hhop
-  * ride
-  * crash
-* livecoder
-* ir_t600 (impulse response) 
 
 ## Graphics
 
@@ -71,4 +54,3 @@
   * s, l = 100, 50 full intensity
 * LC.centerText(c, text)
 * c.font = "bold 100px 'Helvetica Neue'"
-
