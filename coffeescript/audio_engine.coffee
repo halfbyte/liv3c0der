@@ -29,15 +29,18 @@ class NoiseNode
     @buffer
     
   constructor: (@ac, @buffer) ->
+    @ac = ac
+    
     unless @buffer
       console.log("Making Buffer")
       @buffer = NoiseNode.makeBuffer(@ac, 1)    
-    @source  = ac.createBufferSource();
-    @source.buffer = @buffer;
   connect: (dest) =>
-    @source.connect(dest)
+    @dest = dest
   start: (time) =>
+    @source  = @ac.createBufferSource();
+    @source.buffer = @buffer;
     @source.start(time)
+    @source.connect(@dest)
   stop: (time) =>
     @source.stop(time)
   
@@ -52,7 +55,7 @@ class NoiseHat
     filter.type = "bandpass";
     filter.frequency.value = freq;
     filter.Q.value = Q;
-    amp = @context.createGainNode();
+    amp = @context.createGain();
     noise.connect(filter);
     filter.connect(amp);
     amp.connect(output);
@@ -70,7 +73,7 @@ class DrumSynth
     fDecayTime = time + (1 / fDecay)
     aDecayTime = time + (1 / aDecay)
     sine = @context.createOscillator()
-    amp = @context.createGainNode()
+    amp = @context.createGain()
     sine.connect(amp)
     amp.connect(output)
     sine.frequency.setValueAtTime(start, time);
@@ -89,7 +92,7 @@ class SnareSynth
   
   play: (output, time, volume = 0.5, fDecay = 20, aDecay = 20, start = 200, end = 50) ->
     aDecayTime = time + (1 / aDecay)
-    amp = @context.createGainNode()
+    amp = @context.createGain()
     amp.connect(output)
     noise = new NoiseNode(@context, @noise)
     filter = @context.createBiquadFilter();
@@ -123,8 +126,8 @@ class WubSynth
     filter = @context.createBiquadFilter()
     osc.type = @osc_type
     lfo.type = @lfo_type
-    amp = @context.createGainNode()
-    lfoAmp = @context.createGainNode()
+    amp = @context.createGain()
+    lfoAmp = @context.createGain()
     lfo.connect(lfoAmp)
     lfoAmp.connect(filter.frequency)
     osc.frequency.value = AE.NOTES[note]
@@ -135,16 +138,17 @@ class WubSynth
     filter.connect(amp)
     amp.connect(destination)
     lfo.frequency.value = @lfo_f
+    console.log(lfo.frequency.value);
     lfoAmp.gain.value = @flt_lfo_mod
-
+    console.log(lfoAmp.gain.value);
     amp.gain.setValueAtTime(0, time);
     amp.gain.linearRampToValueAtTime(volume, time + 0.001);
     amp.gain.setValueAtTime(volume, time + length - @decay);
     amp.gain.linearRampToValueAtTime(0, time + length);
     osc.start(time);
     osc.stop(time + length);
-    lfo.noteOn(time);
-    lfo.noteOff(time + length);
+    lfo.start(time);
+    lfo.stop(time + length);
     
     
 
@@ -152,16 +156,14 @@ class AcidSynth
   constructor: (context) ->
     @context = context
     helposc = @context.createOscillator()
-    @SAWTOOTH = helposc.SAWTOOTH
-    @SQUARE = helposc.SQUARE
-    @osc_type = @SAWTOOTH
+    @osc_type = 'sawtooth';
     @decay = 0.6;
     @flt_f = 300;
     @flt_mod = 4000;
     @flt_Q = 10;
 
   play: (destination, time, length, note, volume = 0.2) ->
-    gain = @context.createGainNode();
+    gain = @context.createGain();
     filter1 = @context.createBiquadFilter();
     filter2 = @context.createBiquadFilter();
     osc = @context.createOscillator();
@@ -178,8 +180,8 @@ class AcidSynth
     filter1.connect(filter2)
     filter2.connect(gain)
     gain.connect(destination)
-    osc.noteOn(time)
-    osc.noteOff(time+length)
+    osc.start(time)
+    osc.stop(time+length)
 
 class SawSynth
   constructor: (context) ->
@@ -203,7 +205,7 @@ class SawSynth
     @Q = 0;
 
   play: (destination, time, length, note, volume=0.1) ->
-    gain = @context.createGainNode();
+    gain = @context.createGain();
     filter = @context.createBiquadFilter();
     osc = @context.createOscillator();
     osc.type = 'sawtooth'
@@ -257,7 +259,7 @@ class SpreadSynth
     @flt_Q = 10;
 
   play: (destination, time, length, note, volume=0.1) ->
-    gain = @context.createGainNode();
+    gain = @context.createGain();
     filter = @context.createBiquadFilter();
     osc1 = @context.createOscillator();
     osc2 = @context.createOscillator();
@@ -274,18 +276,18 @@ class SpreadSynth
     osc2.connect(filter)
     filter.connect(gain)
     gain.connect(destination)
-    osc1.noteOn(time)
-    osc2.noteOn(time)
-    osc1.noteOff(time+length)
-    osc2.noteOff(time+length)
+    osc1.start(time)
+    osc2.start(time)
+    osc1.stop(time+length)
+    osc2.stop(time+length)
 
 class Reverb
   constructor: (context, options = {}) ->
     
     @context = context
-    @destination = context.createGainNode();
+    @destination = context.createGain();
     @destination.gain.value = 1.0
-    @mixer = context.createGainNode()
+    @mixer = context.createGain()
     @mixer.gain.value = 0.3
     
     buffer = options.buffer
@@ -356,10 +358,10 @@ class AE.LfoFilter
 class Delay
   constructor: (context) ->
     @context = context
-    @destination = context.createGainNode();
+    @destination = context.createGain();
     @destination.gain = 1.0
 
-    fbGain = context.createGainNode();
+    fbGain = context.createGain();
     fbGain.gain.value = 0.6
 
     fbFilter = context.createBiquadFilter();
@@ -370,7 +372,7 @@ class Delay
     delay = context.createDelay(10);
     delay.delayTime.value = 0.6;
 
-    @outGain = context.createGainNode();
+    @outGain = context.createGain();
     @outGain.gain.value = 0.4
 
     # connect
@@ -454,7 +456,7 @@ class Sample
     player = @context.createBufferSource(@buffer)
     player.buffer = @buffer
     player.playbackRate.value = r
-    gain = @context.createGainNode();
+    gain = @context.createGain();
     gain.gain.value = g
     player.connect(gain)
     gain.connect(o)
@@ -463,12 +465,12 @@ class Sample
   play: (o, t, l, r=1.0, g=0.4) ->
     return unless @loaded
     player = @makeBufferSource(o,r, g)
-    player.noteOn(t)
-    player.noteOff(t + l)
+    player.start(t)
+    player.stop(t + l)
   playShot: (o, t, r=1.0, g=0.4) ->
     return unless @loaded
     player = @makeBufferSource(o,r, g)
-    player.noteOn(t)
+    player.start(t)
   playGrain: (o,t,offset, l, r=1.0, g=0.4) ->
     return unless @loaded
     player = @makeBufferSource(o,r, g)
@@ -479,7 +481,7 @@ class AE.Engine
     @tempo = 120
     @steps = 16
     @groove = 0;
-    @audioContext = new webkitAudioContext()
+    @audioContext = new AudioContext()
     console.log("PSI", @postSampleInit)
     console.log("GAD", @getAnalyserData)
     AE.S = new SampleList(@audioContext, "http://localhost:4567/index.json", @sampleProgressCallback, @postSampleInit, @sampleLoadError)
@@ -488,7 +490,7 @@ class AE.Engine
     @analyser.smoothingTimeConstant = 0.5;
     @analyser.minDecibels = -100;
     @analyser.maxDecibels = -40;
-    @masterGain = @audioContext.createGainNode()
+    @masterGain = @audioContext.createGain()
     @masterGain.gain.value = 0.5
     @masterGain.connect(@audioContext.destination)
     @masterGain.connect(@analyser)
@@ -569,7 +571,8 @@ class AE.Engine
         try
           @patternMethod(@audioContext, @masterOutlet, stepTimes, @timePerStep, @state)
         catch e
-          console.log(e, e.message, e.stack)
+          console.log(e, e.message);
+          console.log(e.stack);
           if @oldPatternMethod
             @patternMethod = @oldPatternMethod
             @patternMethod(@audioContext, @masterOutlet, stepTimes, @timePerStep, @state)

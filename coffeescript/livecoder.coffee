@@ -28,37 +28,8 @@ LC.centerText = (c, text) ->
   x = (c.width / 2) - (m.width / 2)
   y = (c.height / 2)
   c.fillText(text, x, y, c.width)
-
-
-class LeapObserver
-  constructor: ->  
-    @listeners = []
-
-  reset: ->
-    @listeners = []
-
-  traverse: (obj, path) ->
-    nextobj = obj[path[0]]
-    return null if !nextobj
-    nextpath = path.slice(1)
-    return nextobj if nextpath.length == 0
-    @traverse(nextobj, nextpath)
-    
-  attach: (obj, attr, framepath, factor, min, max) ->
-    @listeners.push({object: obj, attribute: attr, framepath: framepath, factor: factor, min: min, max: max})
-    
-  frame: (frame) ->
-    @lastFrame = frame
-    for listener in @listeners
-      value = @traverse(frame, listener.framepath)
-      continue if not value?
-      if listener.min >= 0
-        value = Math.abs(value)
-      value = LC.clamp(value * listener.factor, listener.min, listener.max)
-      listener.object[listener.attribute].value = value
   
-    
-
+  
 class ImageList
   imageLocations:
     'badge': 'images/moz-shadow-badge.png'
@@ -86,8 +57,6 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       @deactTimeout = null
       @state = new State()
       @analyserData = new Uint8Array(16);
-      if Leap?
-        @leapController = new Leap.Controller();
 
       AE.Instance = @audioEngine = new AE.Engine(@state, @sampleProgress, @samplesFinished, @sampleError)
       $('#progress').addClass('in-progress')
@@ -181,7 +150,7 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
         console.log(exception, exception.message)
 
     keydown: (e) =>
-      if e.metaKey
+      if e.metaKey || e.ctrlKey
         if e.keyCode == 13
           @reload()
         if e.keyCode == 83
@@ -206,31 +175,22 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
 
       LC.I = new ImageList();
 
-      if Leap?
-        @leapController.on 'animationFrame', @canvasRunLoop
-        @leapController.connect()
-      else
-        @canvasRunLoop()
-        
-      LC.LO = @leapObserver = new LeapObserver()
+      @canvasRunLoop()
 
       
 
 
-    canvasRunLoop: (frame) =>
-      if Leap?
-        @leapObserver.frame(frame)
-      if @drawMethod        
+    canvasRunLoop: () =>
+      if @drawMethod?
         try
-          @audioEngine.getAnalyserData(@analyserData)
-          @drawMethod(@context, @state, @analyserData, frame)
+          # @audioEngine.getAnalyserData(@analyserData)
+          @drawMethod(@context, @state)
         catch exception
           @displayMessage(exception.toString() + ": " + exception.message)
           if @oldDrawMethod
             @drawMethod = @oldDrawMethod
             @drawMethod(@context, @state, @analyserData)
-      if not Leap?
-        (requestAnimationFrame||webkitRequestAnimationFrame||mozRequestAnimationFrame)(@canvasRunLoop)
+      # requestAnimationFrame(@canvasRunLoop)
 
 
 

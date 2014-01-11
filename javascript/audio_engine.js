@@ -40,20 +40,22 @@
       this.stop = __bind(this.stop, this);
       this.start = __bind(this.start, this);
       this.connect = __bind(this.connect, this);
+      this.ac = ac;
       if (!this.buffer) {
         console.log("Making Buffer");
         this.buffer = NoiseNode.makeBuffer(this.ac, 1);
       }
-      this.source = ac.createBufferSource();
-      this.source.buffer = this.buffer;
     }
 
     NoiseNode.prototype.connect = function(dest) {
-      return this.source.connect(dest);
+      return this.dest = dest;
     };
 
     NoiseNode.prototype.start = function(time) {
-      return this.source.start(time);
+      this.source = this.ac.createBufferSource();
+      this.source.buffer = this.buffer;
+      this.source.start(time);
+      return this.source.connect(this.dest);
     };
 
     NoiseNode.prototype.stop = function(time) {
@@ -92,7 +94,7 @@
       filter.type = "bandpass";
       filter.frequency.value = freq;
       filter.Q.value = Q;
-      amp = this.context.createGainNode();
+      amp = this.context.createGain();
       noise.connect(filter);
       filter.connect(amp);
       amp.connect(output);
@@ -134,7 +136,7 @@
       fDecayTime = time + (1 / fDecay);
       aDecayTime = time + (1 / aDecay);
       sine = this.context.createOscillator();
-      amp = this.context.createGainNode();
+      amp = this.context.createGain();
       sine.connect(amp);
       amp.connect(output);
       sine.frequency.setValueAtTime(start, time);
@@ -178,7 +180,7 @@
         end = 50;
       }
       aDecayTime = time + (1 / aDecay);
-      amp = this.context.createGainNode();
+      amp = this.context.createGain();
       amp.connect(output);
       noise = new NoiseNode(this.context, this.noise);
       filter = this.context.createBiquadFilter();
@@ -224,8 +226,8 @@
       filter = this.context.createBiquadFilter();
       osc.type = this.osc_type;
       lfo.type = this.lfo_type;
-      amp = this.context.createGainNode();
-      lfoAmp = this.context.createGainNode();
+      amp = this.context.createGain();
+      lfoAmp = this.context.createGain();
       lfo.connect(lfoAmp);
       lfoAmp.connect(filter.frequency);
       osc.frequency.value = AE.NOTES[note];
@@ -236,15 +238,17 @@
       filter.connect(amp);
       amp.connect(destination);
       lfo.frequency.value = this.lfo_f;
+      console.log(lfo.frequency.value);
       lfoAmp.gain.value = this.flt_lfo_mod;
+      console.log(lfoAmp.gain.value);
       amp.gain.setValueAtTime(0, time);
       amp.gain.linearRampToValueAtTime(volume, time + 0.001);
       amp.gain.setValueAtTime(volume, time + length - this.decay);
       amp.gain.linearRampToValueAtTime(0, time + length);
       osc.start(time);
       osc.stop(time + length);
-      lfo.noteOn(time);
-      return lfo.noteOff(time + length);
+      lfo.start(time);
+      return lfo.stop(time + length);
     };
 
     return WubSynth;
@@ -257,9 +261,7 @@
 
       this.context = context;
       helposc = this.context.createOscillator();
-      this.SAWTOOTH = helposc.SAWTOOTH;
-      this.SQUARE = helposc.SQUARE;
-      this.osc_type = this.SAWTOOTH;
+      this.osc_type = 'sawtooth';
       this.decay = 0.6;
       this.flt_f = 300;
       this.flt_mod = 4000;
@@ -272,7 +274,7 @@
       if (volume == null) {
         volume = 0.2;
       }
-      gain = this.context.createGainNode();
+      gain = this.context.createGain();
       filter1 = this.context.createBiquadFilter();
       filter2 = this.context.createBiquadFilter();
       osc = this.context.createOscillator();
@@ -287,8 +289,8 @@
       filter1.connect(filter2);
       filter2.connect(gain);
       gain.connect(destination);
-      osc.noteOn(time);
-      return osc.noteOff(time + length);
+      osc.start(time);
+      return osc.stop(time + length);
     };
 
     return AcidSynth;
@@ -320,7 +322,7 @@
       if (volume == null) {
         volume = 0.1;
       }
-      gain = this.context.createGainNode();
+      gain = this.context.createGain();
       filter = this.context.createBiquadFilter();
       osc = this.context.createOscillator();
       osc.type = 'sawtooth';
@@ -387,7 +389,7 @@
       if (volume == null) {
         volume = 0.1;
       }
-      gain = this.context.createGainNode();
+      gain = this.context.createGain();
       filter = this.context.createBiquadFilter();
       osc1 = this.context.createOscillator();
       osc2 = this.context.createOscillator();
@@ -404,10 +406,10 @@
       osc2.connect(filter);
       filter.connect(gain);
       gain.connect(destination);
-      osc1.noteOn(time);
-      osc2.noteOn(time);
-      osc1.noteOff(time + length);
-      return osc2.noteOff(time + length);
+      osc1.start(time);
+      osc2.start(time);
+      osc1.stop(time + length);
+      return osc2.stop(time + length);
     };
 
     return SpreadSynth;
@@ -422,9 +424,9 @@
         options = {};
       }
       this.context = context;
-      this.destination = context.createGainNode();
+      this.destination = context.createGain();
       this.destination.gain.value = 1.0;
-      this.mixer = context.createGainNode();
+      this.mixer = context.createGain();
       this.mixer.gain.value = 0.3;
       buffer = options.buffer;
       if (!buffer) {
@@ -503,9 +505,9 @@
       var delay, fbFilter, fbGain;
 
       this.context = context;
-      this.destination = context.createGainNode();
+      this.destination = context.createGain();
       this.destination.gain = 1.0;
-      fbGain = context.createGainNode();
+      fbGain = context.createGain();
       fbGain.gain.value = 0.6;
       fbFilter = context.createBiquadFilter();
       fbFilter.type = fbFilter.HIGHPASS;
@@ -513,7 +515,7 @@
       fbFilter.Q.value = 2.0;
       delay = context.createDelay(10);
       delay.delayTime.value = 0.6;
-      this.outGain = context.createGainNode();
+      this.outGain = context.createGain();
       this.outGain.gain.value = 0.4;
       this.destination.connect(delay);
       delay.connect(this.outGain);
@@ -643,7 +645,7 @@
       player = this.context.createBufferSource(this.buffer);
       player.buffer = this.buffer;
       player.playbackRate.value = r;
-      gain = this.context.createGainNode();
+      gain = this.context.createGain();
       gain.gain.value = g;
       player.connect(gain);
       gain.connect(o);
@@ -663,8 +665,8 @@
         return;
       }
       player = this.makeBufferSource(o, r, g);
-      player.noteOn(t);
-      return player.noteOff(t + l);
+      player.start(t);
+      return player.stop(t + l);
     };
 
     Sample.prototype.playShot = function(o, t, r, g) {
@@ -680,7 +682,7 @@
         return;
       }
       player = this.makeBufferSource(o, r, g);
-      return player.noteOn(t);
+      return player.start(t);
     };
 
     Sample.prototype.playGrain = function(o, t, offset, l, r, g) {
@@ -718,7 +720,7 @@
       this.tempo = 120;
       this.steps = 16;
       this.groove = 0;
-      this.audioContext = new webkitAudioContext();
+      this.audioContext = new AudioContext();
       console.log("PSI", this.postSampleInit);
       console.log("GAD", this.getAnalyserData);
       AE.S = new SampleList(this.audioContext, "http://localhost:4567/index.json", this.sampleProgressCallback, this.postSampleInit, this.sampleLoadError);
@@ -727,7 +729,7 @@
       this.analyser.smoothingTimeConstant = 0.5;
       this.analyser.minDecibels = -100;
       this.analyser.maxDecibels = -40;
-      this.masterGain = this.audioContext.createGainNode();
+      this.masterGain = this.audioContext.createGain();
       this.masterGain.gain.value = 0.5;
       this.masterGain.connect(this.audioContext.destination);
       this.masterGain.connect(this.analyser);
@@ -836,7 +838,8 @@
             this.patternMethod(this.audioContext, this.masterOutlet, stepTimes, this.timePerStep, this.state);
           } catch (_error) {
             e = _error;
-            console.log(e, e.message, e.stack);
+            console.log(e, e.message);
+            console.log(e.stack);
             if (this.oldPatternMethod) {
               this.patternMethod = this.oldPatternMethod;
               this.patternMethod(this.audioContext, this.masterOutlet, stepTimes, this.timePerStep, this.state);
