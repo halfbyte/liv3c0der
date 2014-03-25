@@ -17,8 +17,27 @@ AE.LEnv = (p,t,l,min, max,a,d,s,r) ->
   p.linearRampToValueAtTime(max, t + (a*l))
   p.linearRampToValueAtTime(min + ((max - min) * s), t + ((a + d)*l))
   p.setValueAtTime(min + ((max - min) * s), t + l - (l*r))
-  p.linearRampToValueAtTime(min, t + l)
-  
+  p.linearRampToValueAtTime(min, t + l)  
+
+# utility functions
+AE.chord = (notes, fun) ->
+  for note in notes
+    fun(note)
+    
+AE.arp = (notes, t, l, n, fun) ->
+  for i in [0...n]
+    note = notes[i % notes.length]
+    fun(t + i*l, note)
+
+class Parameterized
+   defaults: (defaults) ->
+     @defaults = defaults
+     @parameters = $.extend({}, @defaults)
+   reset: ->
+     @parameters = $.extend(@parameters, @defaults)
+   applyOptions: (options) ->
+     @parameters = $.extend(@parameters, options)
+     
 
 class NoiseNode
   @makeBuffer: (ac, length = 1) ->
@@ -44,166 +63,216 @@ class NoiseNode
   stop: (time) =>
     @source.stop(time)
   
-class NoiseHat
+class NoiseHat extends Parameterized
   constructor: (@context, @noise) ->
-    console.log(@context, @noise)
+    @defaults
+      volume: 0.8
+      decay: 20
+      flt_freq: 6000
+      Q: 5
 
-  play: (output, time, volume=0.1, decay = 20, freq = 6000, Q = 5) ->
-    decayTime = time + (0.5 / decay);
+  play: (output, time) ->
+    decayTime = time + (0.5 / @parameters.decay);
     noise = new NoiseNode(@context, @noise)
     filter = @context.createBiquadFilter();
     filter.type = "bandpass";
-    filter.frequency.value = freq;
-    filter.Q.value = Q;
+    filter.frequency.value = @parameters.flt_freq;
+    filter.Q.value = @parameters.Q;
     amp = @context.createGain();
     noise.connect(filter);
     filter.connect(amp);
     amp.connect(output);
     amp.gain.setValueAtTime(0, time);
-    amp.gain.linearRampToValueAtTime(volume, time + 0.001);
-    amp.gain.setValueAtTime(volume, time + 0.001);    
+    amp.gain.linearRampToValueAtTime(@parameters.volume, time + 0.001);
+    amp.gain.setValueAtTime(@parameters.volume, time + 0.001);    
     amp.gain.linearRampToValueAtTime(0, decayTime)
     noise.start(time);
-    noise.start(decayTime);
+    noise.stop(decayTime);
+    return this
 
-class DrumSynth
+  p: (output, time, options = {}) ->
+    @applyOptions(options)
+    @play(output, time)
+    return this
+    
+
+class DrumSynth extends Parameterized
   constructor: (@context) ->
+    @defaults
+      volume: 0.8
+      sweep: 20
+      decay: 20
+      start: 200
+      end: 50
+       
   
-  play: (output, time, volume = 0.5, fDecay = 20, aDecay = 20, start = 200, end = 50) ->
-    fDecayTime = time + (1 / fDecay)
-    aDecayTime = time + (1 / aDecay)
+  play: (output, time) ->
+    fDecayTime = time + (1 / @parameters.sweep)
+    aDecayTime = time + (1 / @parameters.decay)
     sine = @context.createOscillator()
     amp = @context.createGain()
     sine.connect(amp)
     amp.connect(output)
-    sine.frequency.setValueAtTime(start, time);
-    sine.frequency.exponentialRampToValueAtTime(end, fDecayTime);
+    sine.frequency.setValueAtTime(@parameters.start, time);
+    sine.frequency.exponentialRampToValueAtTime(@parameters.end, fDecayTime);
     amp.gain.setValueAtTime(0, time);
-    amp.gain.linearRampToValueAtTime(volume, time + 0.001);
+    amp.gain.linearRampToValueAtTime(@parameters.volume, time + 0.001);
     amp.gain.linearRampToValueAtTime(0, aDecayTime);
     sine.start(time);
     sine.stop(aDecayTime);
+    return this
+  
+  p: (output, time, options = {}) ->
+    @applyOptions(options)
+    @play(output, time)
+    return this
+    
 
-class SnareSynth
+class SnareSynth extends Parameterized
   constructor: (@context, @noise) ->
     @drumsyn = new DrumSynth(@context)
-    @flt_f = 1000
-    @flt_Q = 5
+    @defaults
+      volume: 0.5
+      sweep: 20
+      decay: 10
+      start: 400
+      end: 100
+      flt_freq: 4000
+      Q: 5
+    @drumsyn.applyOptions(@parameters)
+    
   
-  play: (output, time, volume = 0.5, fDecay = 20, aDecay = 20, start = 200, end = 50) ->
-    aDecayTime = time + (1 / aDecay)
+  play: (output, time) =>
+    aDecayTime = time + (1 / @parameters.decay)
     amp = @context.createGain()
     amp.connect(output)
     noise = new NoiseNode(@context, @noise)
     filter = @context.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.value = @flt_f;
-    filter.Q.value = @flt_Q;
+    filter.frequency.value = @parameters.flt_freq;
+    filter.Q.value = @parameters.Q;
     noise.connect(filter)
     
     amp.gain.setValueAtTime(0, time);
-    amp.gain.linearRampToValueAtTime(volume, time + 0.001);
+    amp.gain.linearRampToValueAtTime(@parameters.volume, time + 0.001);
     amp.gain.linearRampToValueAtTime(0, aDecayTime);
     filter.connect(amp)
     noise.start(time)
     noise.stop(aDecayTime)
-    @drumsyn.play(output, time, volume, fDecay, aDecay, start, end)    
+    @drumsyn.applyOptions(@parameters)
+    @drumsyn.play(output, time)
+    return this
 
-class WubSynth
+  p: (output, time, options = {}) ->
+    @applyOptions(options)
+    @play(output, time)
+    return this
+
+class WubSynth extends Parameterized
   constructor: (@context) ->
-    @osc_type = 'square'
-    @lfo_type = 'sine'
-    @decay = 0.9
-    @flt_f = 200
-    @flt_decay = 0.8
-    @flt_mod = 500
-    @flt_lfo_mod = 500
-    @lfo_f = 200;
-    @flt_Q = 10
+    @defaults
+      osc_type: 'square'
+      lfo_type: 'sine'
+      decay: 0.9
+      flt_freq: 200
+      flt_decay: 0.9
+      flt_mod: 100
+      flt_lfo: 500
+      lfo_freq: 4
+      Q: 10
+          
   play: (destination, time, length, note, volume = 0.2) ->
+    #console.log(@flt_f, @flt_mod)
     osc = @context.createOscillator()
     lfo = @context.createOscillator()
     filter = @context.createBiquadFilter()
-    osc.type = @osc_type
-    lfo.type = @lfo_type
+    osc.type = @parameters.osc_type
+    lfo.type = @parameters.lfo_type
     amp = @context.createGain()
     lfoAmp = @context.createGain()
     lfo.connect(lfoAmp)
     lfoAmp.connect(filter.frequency)
     osc.frequency.value = AE.NOTES[note]
-    filter.Q.value = @flt_Q
-    filter.frequency.setValueAtTime(@flt_f + @flt_mod, time)
-    filter.frequency.linearRampToValueAtTime(@flt_f + @flt_mod, time + @flt_decay)
+    filter.Q.value = @parameters.Q
+    
+    filter.frequency.setValueAtTime(@parameters.flt_freq + @parameters.flt_mod, time)
+    filter.frequency.linearRampToValueAtTime(@parameters.flt_freq + @parameters.flt_mod, time + @parameters.flt_decay)
     osc.connect(filter)
     filter.connect(amp)
     amp.connect(destination)
-    lfo.frequency.value = @lfo_f
-    console.log(lfo.frequency.value);
-    lfoAmp.gain.value = @flt_lfo_mod
-    console.log(lfoAmp.gain.value);
+    lfo.frequency.value = @parameters.lfo_freq
+    lfoAmp.gain.value = @parameters.flt_lfo
     amp.gain.setValueAtTime(0, time);
     amp.gain.linearRampToValueAtTime(volume, time + 0.001);
-    amp.gain.setValueAtTime(volume, time + length - @decay);
+    amp.gain.setValueAtTime(volume, time + length - @parameters.decay);
     amp.gain.linearRampToValueAtTime(0, time + length);
     osc.start(time);
     osc.stop(time + length);
     lfo.start(time);
     lfo.stop(time + length);
-    
+    return this
+  p: (out, time, length, note, options = {}) ->
+    @applyOptions(options)
+    @play(out, time, length, note, @parameters.volume)
+    return this
     
 
-class AcidSynth
+class AcidSynth extends Parameterized
   constructor: (context) ->
     @context = context
-    helposc = @context.createOscillator()
-    @osc_type = 'sawtooth';
-    @decay = 0.6;
-    @flt_f = 300;
-    @flt_mod = 4000;
-    @flt_Q = 10;
+    @defaults
+      osc_type: 'sawtooth'
+      decay: 0.6
+      flt_freq: 300
+      flt_mod: 4000
+      Q: 10
 
   play: (destination, time, length, note, volume = 0.2) ->
     gain = @context.createGain();
     filter1 = @context.createBiquadFilter();
     filter2 = @context.createBiquadFilter();
     osc = @context.createOscillator();
-    osc.type = @osc_type
+    osc.type = @parameters.osc_type
     osc.frequency.value = AE.NOTES[note]
 
-    AE.LEnv(gain.gain, time, length, 0, volume, 0.01, @decay, 0, 0)
-    AE.LEnv(filter1.frequency, time, length, @flt_f, @flt_f + @flt_mod, 0.01, @decay, 0, 0)
-    AE.LEnv(filter2.frequency, time, length, @flt_f, @flt_f + @flt_mod, 0.01, @decay, 0, 0)
+    AE.LEnv(gain.gain, time, length, 0, volume, 0.01, @parameters.decay, 0, 0)
+    AE.LEnv(filter1.frequency, time, length, @parameters.flt_freq, @parameters.flt_freq + @parameters.flt_mod, 0.01, @parameters.decay, 0, 0)
+    AE.LEnv(filter2.frequency, time, length, @parameters.flt_freq, @parameters.flt_freq + @parameters.flt_mod, 0.01, @parameters.decay, 0, 0)
 
-    filter1.Q.value = @flt_Q
-    filter2.Q.value = @flt_Q
+    filter1.Q.value = @parameters.Q
+    filter2.Q.value = @parameters.Q
     osc.connect(filter1)
     filter1.connect(filter2)
     filter2.connect(gain)
     gain.connect(destination)
     osc.start(time)
     osc.stop(time+length)
+    return this
+  p: (out, time, length, note, options = {}) ->
+    @applyOptions(options)
+    @play(out, time, length, note, @parameters.volume)
+    return this
 
-class SawSynth
+class SawSynth extends Parameterized
   constructor: (context) ->
     @context = context
-
-    # Params
-    @spread = 10;
-    @osc_type = 'sawtooth'
-    @voices = 5;
-    @amp_a = 0.05;
-    @amp_d = 0.3;
-    @amp_s = 0.8;
-    @amp_r = 0.1;
-
-    @flt_a = 0.01;
-    @flt_d = 0.1;
-    @flt_s = 1.0;
-    @flt_r = 0.01;
-    @flt_f = 4000;
-    @flt_mod = 3000;
-    @Q = 0;
-
+    @defaults(
+      spread: 10
+      osc_type: 'sawtooth'
+      voices: 5
+      amp_a: 0.05
+      amp_d: 0.3
+      amp_s: 0.8
+      amp_r: 0.1
+      flt_a: 0.01
+      flt_d: 0.1
+      flt_s: 1.0
+      flt_r: 0.01
+      flt_freq: 4000
+      lft_mod: 3000
+      Q: 0
+    )
+      
   play: (destination, time, length, note, volume=0.1) ->
     gain = @context.createGain();
     filter = @context.createBiquadFilter();
@@ -211,67 +280,71 @@ class SawSynth
     osc.type = 'sawtooth'
     osc.frequency.value = AE.NOTES[note]
     oscs = [osc]
-    for i in [0...@voices]
+    for i in [0...@parameters.voices]
       osc1 = @context.createOscillator()
       osc2 = @context.createOscillator()
       osc1.type = 'sawtooth'
       osc2.type = 'sawtooth'
-      osc1.detune.value = @spread * i
-      osc2.detune.value = @spread * i * -1
+      osc1.detune.value = @parameters.spread * i
+      osc2.detune.value = @parameters.spread * i * -1
       osc1.frequency.value = AE.NOTES[note]
       osc2.frequency.value = AE.NOTES[note]
       oscs.push(osc1,osc2)
 
-    AE.LEnv(gain.gain, time, length, 0, volume, @amp_a, @amp_d, @amp_s, @amp_r)
-    AE.LEnv(filter.frequency, time, length, @flt_f, (@flt_f + @flt_mod), @flt_a, @flt_d, @flt_s, @flt_r)
-    filter.Q.value = @Q;
+    AE.LEnv(gain.gain, time, length, 0, volume, @parameters.amp_a, @parameters.amp_d, @parameters.amp_s, @parameters.amp_r)
+    AE.LEnv filter.frequency, 
+      time, 
+      length, 
+      @parameters.flt_freq, 
+      (@parameters.flt_freq + @parameters.flt_mod), 
+      @parameters.flt_a, @parameters.flt_d, @parameters.flt_s, @parameters.flt_r
+            
+    filter.Q.value = @parameters.Q;
     filter.connect(gain)
     gain.connect(destination)
     for osc in oscs
       osc.connect(filter)
       osc.start(time)
       osc.stop(time + length)
+    return this
+  
+  p: (out, time, length, note, options = {}) ->
+    @applyOptions(options)
+    @play(out, time, length, note, @parameters.volume)
+    return this
 
-
-class SpreadSynth
+class SpreadSynth extends Parameterized
   constructor: (context) ->
     @context = context
-    helposc = @context.createOscillator()
-    @SAWTOOTH = helposc.SAWTOOTH
-    @SINE = helposc.SINE
-    @SQUARE = helposc.SQUARE
-    @TRIANGLE = helposc.TRIANGLE
-
-    # Params
-    @spread = 10;
-    @osc_type = @SAWTOOTH;
-    @amp_a = 0.01;
-    @amp_d = 0.1;
-    @amp_s = 0.8;
-    @amp_r = 0.1;
-
-    @flt_a = 0.01;
-    @flt_d = 0.1;
-    @flt_s = 0.8;
-    @flt_r = 0.01;
-    @flt_f = 500;
-    @flt_mod = 2000;
-    @flt_Q = 10;
+    @defaults
+      spread: 10
+      osc_type: 'sawtooth'
+      amp_a: 0.01
+      amp_d: 0.1
+      amp_s: 0.8
+      amp_r: 0.1
+      flt_a: 0.01
+      flt_d: 0.1
+      flt_s: 0.8
+      flt_r: 0.01
+      flt_freq: 500
+      flt_mod: 2000
+      Q: 10
 
   play: (destination, time, length, note, volume=0.1) ->
     gain = @context.createGain();
     filter = @context.createBiquadFilter();
     osc1 = @context.createOscillator();
     osc2 = @context.createOscillator();
-    osc1.type = @osc_type
-    osc2.type = @osc_type
-    osc1.detune.value = @spread
-    osc2.detune.value = @spread * -1
+    osc1.type = @parameters.osc_type
+    osc2.type = @parameters.osc_type
+    osc1.detune.value = @parameters.spread
+    osc2.detune.value = @parameters.spread * -1
     osc1.frequency.value = AE.NOTES[note]
     osc2.frequency.value = AE.NOTES[note]
-    AE.LEnv(gain.gain, time, length, 0, volume, @amp_a, @amp_d, @amp_s, @amp_r)
-    AE.LEnv(filter.frequency, time, length, @flt_f, (@flt_f + @flt_mod), @flt_a, @flt_d, @flt_s, @flt_r)
-    filter.Q.value = @flt_Q;
+    AE.LEnv(gain.gain, time, length, 0, volume, @parameters.amp_a, @parameters.amp_d, @parameters.amp_s, @parameters.amp_r)
+    AE.LEnv(filter.frequency, time, length, @parameters.flt_freq, (@parameters.flt_freq + @parameters.flt_mod), @parameters.flt_a, @parameters.flt_d, @parameters.flt_s, @parameters.flt_r)
+    filter.Q.value = @parameters.Q;
     osc1.connect(filter)
     osc2.connect(filter)
     filter.connect(gain)
@@ -280,15 +353,19 @@ class SpreadSynth
     osc2.start(time)
     osc1.stop(time+length)
     osc2.stop(time+length)
+    return this
+  p: (out, time, length, note, options = {}) ->
+    @applyOptions(options)
+    @play(out, time, length, note, @parameters.volume)
+    return this
 
 class Reverb
   constructor: (context, options = {}) ->
-    
     @context = context
     @destination = context.createGain();
     @destination.gain.value = 1.0
     @mixer = context.createGain()
-    @mixer.gain.value = 0.3
+    @mixer.gain.value = 0.5
     
     buffer = options.buffer
 
@@ -366,7 +443,7 @@ class Delay
 
     fbFilter = context.createBiquadFilter();
     fbFilter.type = fbFilter.HIGHPASS;
-    fbFilter.frequency.value = 4000.0;
+    fbFilter.frequency.value = 1000.0;
     fbFilter.Q.value = 2.0;
 
     delay = context.createDelay(10);
@@ -509,10 +586,6 @@ class AE.Engine
     AE.DelayLine = new Delay(@audioContext)
     AE.DelayLine.connect(@masterGain)
     AE.DEL = AE.DelayLine.destination
-    AE.Arp = (notes, t, l, n, fun) ->
-      for i in [0...n]
-        note = notes[i % notes.length]
-        fun(t + i*l, note)
         
 
     AE.NoiseHat = new NoiseHat(@audioContext, @noiseBuffer)
@@ -533,11 +606,11 @@ class AE.Engine
     data
 
   lateInit: => 
-    AE.ReverbLine = new Reverb(@audioContext, {buffer: @reverbBuffer, decay: 5})
+    AE.ReverbLine = new Reverb(@audioContext, {buffer: @reverbBuffer, decay: 3})
     AE.ReverbLine.connect(@masterGain)
     
     dub_delay = new Delay(@audioContext)
-    dub_reverb = new Reverb(@audioContext, {decay: 2, length: 5})
+    dub_reverb = new Reverb(@audioContext, {decay: 2, length: 8})
     dub_delay.connect(dub_reverb.destination)
     dub_reverb.connect(@masterGain)
     
@@ -571,6 +644,8 @@ class AE.Engine
         try
           @patternMethod(@audioContext, @masterOutlet, stepTimes, @timePerStep, @state)
         catch e
+          if @displayMessage
+            @displayMessage(e.message);
           console.log(e, e.message);
           console.log(e.stack);
           if @oldPatternMethod

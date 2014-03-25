@@ -12,4 +12,3 @@ Shortcuts for
 Import/Export. Loading stuff from remote, maybe.
 
 Server component for file storage and multiple sessions (with local sync and offline stuff. How?)
-

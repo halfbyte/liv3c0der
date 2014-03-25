@@ -30,6 +30,10 @@ pattern(context, outlet, start_times, step_time, state, data)
 * *state* is the beforementioned state object (note that the canvas loop and the pattern loop indeed share this object)
 * *data* is unused and will most probably contain prefabbed samples etc.
 
+### License
+
+Liv3c0der is released under MIT License. See [LICENSE.txt](LICENSE.txt) for the full license.
+
 ### Sample Server
 
 liv3c0der does no longer have any audio assets included. You need to start a seperate compontent to serve assets.
@@ -78,10 +82,10 @@ This is an almost complete list of the high level bulding blocks, but you probab
   * DelayLine.filterFrequency
   * DelayLine.feedback
 * AE.ReverbLine - a configurable reverb line that can be used as an output
-  * ReverbLine.mix - mix ratio between original and reverb signal. This is the AudioPAram
+  * ReverbLine.mix - mix ratio between original and reverb signal. This is the AudioParam
+* AE.DubLine - A combination of delay and reverb, as often used in dub and dubtechno.
 
-* AE.DEL and AE.REV are shortcuts for the inputs of DelayLine and ReverbLine.
-
+* AE.DEL, AE.DUB and AE.REV are shortcuts for the inputs of DelayLine, DubLine and ReverbLine.
 * AE.SpreadSynth (will be renamed!) is a dual oscillator synth with full ENVs for amp and filter
 * AE.AcidSynth is a single osc synth with a double filter for enhanced squeakability. It has a more simple envelope.
 * AE.SawSynth is a configurable "Super Saw" synth with a large number or Sawtooth oscillators all slightly detuned.
