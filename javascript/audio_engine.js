@@ -398,7 +398,7 @@
         flt_s: 1.0,
         flt_r: 0.01,
         flt_freq: 4000,
-        lft_mod: 3000,
+        flt_mod: 3000,
         Q: 0
       });
     }

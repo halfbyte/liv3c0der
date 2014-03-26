@@ -74,7 +74,9 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       @oldDrawMethod = null
       @deactTimeout = null
       @state = new State()
+      @skip_load_from_hash = false
       @analyserData = new Uint8Array(16);
+      @current_name = 'default'
       if Leap?
         @leapController = new Leap.Controller();
 
@@ -88,7 +90,6 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       @updateKeyList()
       
     load_from_hash: =>
-      console.log("load from hash #{location.hash}")
       if location.hash != ''
         key = location.hash.substr(1)
         @load(key)
@@ -129,8 +130,11 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
         @editor.focus()
       $(window).bind 'hashchange', @load_from_hash
     load: (key) ->
+      return if key == @current_name
+      console.log("load", key)
       db.get key, (data) =>
         if data
+          @current_name = key
           @editor.setValue(data.code)
           @editor.focus()
 
@@ -147,8 +151,10 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
         name = group[1]
       else
         name = "foobar_#{Math.round(Math.random()*1000)}"
-      db.save({key: name, code: code})
+      db.save({key: name, code: code})      
       @updateKeyList()
+      @current_name = name
+      location.hash = name
 
 
     deactivate: =>

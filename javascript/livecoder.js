@@ -149,7 +149,9 @@
         this.oldDrawMethod = null;
         this.deactTimeout = null;
         this.state = new State();
+        this.skip_load_from_hash = false;
         this.analyserData = new Uint8Array(16);
+        this.current_name = 'default';
         if (typeof Leap !== "undefined" && Leap !== null) {
           this.leapController = new Leap.Controller();
         }
@@ -166,7 +168,6 @@
       LiveCoder.prototype.load_from_hash = function() {
         var key;
 
-        console.log("load from hash " + location.hash);
         if (location.hash !== '') {
           key = location.hash.substr(1);
           return this.load(key);
@@ -223,8 +224,13 @@
       LiveCoder.prototype.load = function(key) {
         var _this = this;
 
+        if (key === this.current_name) {
+          return;
+        }
+        console.log("load", key);
         return db.get(key, function(data) {
           if (data) {
+            _this.current_name = key;
             _this.editor.setValue(data.code);
             return _this.editor.focus();
           }
@@ -256,7 +262,9 @@
           key: name,
           code: code
         });
-        return this.updateKeyList();
+        this.updateKeyList();
+        this.current_name = name;
+        return location.hash = name;
       };
 
       LiveCoder.prototype.deactivate = function() {};
