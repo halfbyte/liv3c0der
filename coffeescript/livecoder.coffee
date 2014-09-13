@@ -132,11 +132,27 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
     load: (key) ->
       return if key == @current_name
       console.log("load", key)
-      db.get key, (data) =>
-        if data
-          @current_name = key
-          @editor.setValue(data.code)
+      prefixPos = key.indexOf("gist:");
+      if prefixPos != -1
+        @load_from_gist(key.substr(prefixPos + 5));
+      else
+        db.get key, (data) =>
+          if data
+            @current_name = key
+            @editor.setValue(data.code)
+            @editor.focus()
+
+    load_from_gist: (url) =>
+      console.log("load from url", url)
+      $.get "https://gist.githubusercontent.com" + url, {}, (data) =>
+        answer = confirm("You're loading in Data from an untrusted source. Please make sure that you're checking the code before executing!");
+        if answer
+          @editor.setValue(data)
           @editor.focus()
+          @save()
+        else
+          location.hash = 'default'
+        
 
     updateKeyList: ->
       @$keylist.html("<li data-action='hide'>&lt;&lt;&lt;</li>")
@@ -151,8 +167,10 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
         name = group[1]
       else
         name = "foobar_#{Math.round(Math.random()*1000)}"
-      db.save({key: name, code: code})      
+      console.log("SAVE", name)
+      db.save({key: name, code: code})
       @updateKeyList()
+      
       @current_name = name
       location.hash = name
 
