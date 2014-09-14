@@ -143,12 +143,15 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
             @editor.focus()
 
     load_from_gist: (url) =>
-      console.log("load from url", url)
-      $.get "https://gist.githubusercontent.com" + url, {}, (data) =>
+      fullUrl = "https://gist.githubusercontent.com" + url;
+      console.log("load from url", fullUrl);
+      $.get fullUrl, {}, (data) =>
         answer = confirm("You're loading in Data from an untrusted source. Please make sure that you're checking the code before executing!");
         if answer
           @editor.setValue(data)
+          @editor.gotoLine(1)
           @editor.focus()
+          
           @save()
         else
           location.hash = 'default'

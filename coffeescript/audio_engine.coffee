@@ -481,7 +481,7 @@ class SampleList
     $.getJSON(@baseUrl, {}, @_listLoaded).fail(@_listError)
   _listError: () =>
     console.log("Failed to Load Sample List");
-    @errorCallback('sample list could not be loaded, did you start the server?') if @errorCallback
+    @errorCallback('no samples available <a href="https://github.com/halfbyte/liv3c0der/wiki/SampleServer">more info</a>') if @errorCallback
   _listLoaded: (data) =>
     console.log(data);
     @sampleLocations = data

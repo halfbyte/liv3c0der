@@ -242,13 +242,16 @@
       };
 
       LiveCoder.prototype.load_from_gist = function(url) {
-        console.log("load from url", url);
-        return $.get("https://gist.githubusercontent.com" + url, {}, (function(_this) {
+        var fullUrl;
+        fullUrl = "https://gist.githubusercontent.com" + url;
+        console.log("load from url", fullUrl);
+        return $.get(fullUrl, {}, (function(_this) {
           return function(data) {
             var answer;
             answer = confirm("You're loading in Data from an untrusted source. Please make sure that you're checking the code before executing!");
             if (answer) {
               _this.editor.setValue(data);
+              _this.editor.gotoLine(1);
               _this.editor.focus();
               return _this.save();
             } else {
