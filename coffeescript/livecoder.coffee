@@ -22,7 +22,7 @@ LC.centerText = (c, text) ->
 
 
 class LeapObserver
-  constructor: ->  
+  constructor: ->
     @listeners = []
 
   reset: ->
@@ -34,10 +34,10 @@ class LeapObserver
     nextpath = path.slice(1)
     return nextobj if nextpath.length == 0
     @traverse(nextobj, nextpath)
-    
+
   attach: (obj, attr, framepath, factor, min, max) ->
     @listeners.push({object: obj, attribute: attr, framepath: framepath, factor: factor, min: min, max: max})
-    
+
   frame: (frame) ->
     @lastFrame = frame
     for listener in @listeners
@@ -47,7 +47,7 @@ class LeapObserver
         value = Math.abs(value)
       value = LC.clamp(value * listener.factor, listener.min, listener.max)
       listener.object[listener.attribute].value = value
-  
+
 class ImageList
   imageLocations:
     'badge': 'images/moz-shadow-badge.png'
@@ -65,7 +65,7 @@ class State
 new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
   class LC.LiveCoder
     constructor: (editor, canvas, keylist, samplelist) ->
-      
+
       @$el = $(editor)
       @$canvas = $(canvas)
       @$keylist = $(keylist)
@@ -88,7 +88,7 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       @initEditor()
       @initCanvas()
       @updateKeyList()
-      
+
     load_from_hash: =>
       if location.hash != ''
         key = location.hash.substr(1)
@@ -134,7 +134,7 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       console.log("load", key)
       prefixPos = key.indexOf("gist:");
       if prefixPos != -1
-        @load_from_gist(key.substr(prefixPos + 5));
+        @load_from_gist(key.substr(prefixPos + 6));
       else
         db.get key, (data) =>
           if data
@@ -151,11 +151,11 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
           @editor.setValue(data)
           @editor.gotoLine(1)
           @editor.focus()
-          
+
           @save()
         else
           location.hash = 'default'
-        
+
 
     updateKeyList: ->
       @$keylist.html("<li data-action='hide'>&lt;&lt;&lt;</li>")
@@ -173,7 +173,7 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       console.log("SAVE", name)
       db.save({key: name, code: code})
       @updateKeyList()
-      
+
       @current_name = name
       location.hash = name
 
@@ -193,8 +193,10 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
       try
         eval(code)
         @oldDrawMethod = @drawMethod if @drawMethod
-        @drawMethod = draw if draw
-        @audioEngine.setPatternMethod(pattern) if pattern
+        @drawMethod = draw if draw?
+        @audioEngine.setPatternMethod(pattern) if pattern?
+        @audioEngine.setNoteMethod(note) if note?
+        @audioEngine.setControlMethod(control) if control?
       catch exception
         console.log(exception, exception.message)
 
@@ -229,15 +231,15 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
         @leapController.connect()
       else
         @canvasRunLoop()
-        
+
       LC.LO = @leapObserver = new LeapObserver()
 
       @canvasRunLoop()
 
     canvasRunLoop: (frame) =>
-      if Leap?  
+      if Leap?
         @leapObserver.frame(frame)
-      if @drawMethod        
+      if @drawMethod
         try
           @audioEngine.getAnalyserData(@analyserData)
           @drawMethod(@context, @state, @analyserData, frame)
@@ -262,5 +264,3 @@ new Lawnchair {name: 'livecoder', adapter: 'dom'}, (db) ->
         $('.message p:first-child').remove();
       else
         $('.message').remove();
-            
-

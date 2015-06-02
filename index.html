@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8"> 
+    <meta charset="utf-8">
     <title>moz-shadow liv3c0der</title>
     <link rel="stylesheet" type="text/css" href="/style.css">
 </head>
 <body>
-<div id="editor">  
+<div id="editor">
   // NAME: default
   AE.Instance.tempo = 120;
   AE.Instance.groove = 0.0;
@@ -19,19 +19,19 @@
   o = default output node
   t = array of timings for all the steps (16 steps per pattern)
   l = length of one step in seconds
-  s = state object for keeping global state.  
-  
+  s = state object for keeping global state.
+
   */
-  
+
   function pattern(c, o, t, l, s) {
       var i;
       var ll=t.length;
-  
+
       s.init('loop',0);
-  
+
       AE.DelayLine.delayTime.value = l*3;
       AE.ReverbLine.mix.value = 0.5;
-      
+
       // your code here
       for(i=0;i&lt;ll;i++) {
           // uncomment one/some of the lines below and press CTRL-Enter or CMD-Enter (on a Mac) to start playing.
@@ -47,8 +47,8 @@
 <ul id="keylist" class="hidden"></ul>
 <ul id="samplelist" class="hidden"></ul>
 <div class="help-bubble">
-  liv3c0der by <a href="https://webaudiohacks.com">halfbyte</a> / Find more info @ 
-  <a href="https://github.com/halfbyte/liv3c0der">github.com</a> 
+  liv3c0der by <a href="https://webaudiohacks.com">halfbyte</a> / Find more info @
+  <a href="https://github.com/halfbyte/liv3c0der">github.com</a>
   <a href="#" data-close=".help-bubble">[x]</a>
 </div>
 <script src="/javascript/vendor/jquery.min.js" type="text/javascript" charset="utf-8"></script>
@@ -56,14 +56,14 @@
 <script src="/javascript/vendor/ace-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
 <script src="/javascript/vendor/web_audio_monkeypatch.js" type="text/javascript" charset="utf-8"></script>
 <script src="/javascript/vendor/request_animation_frame.js" type="text/javascript" charset="utf-8"></script>
-<script src="//js.leapmotion.com/leap-0.4.3.min.js"></script>
+<script src="/javascript/leap.min.js"></script>
 <script type="text/javascript" src="/javascript/vendor/tuna.js" charset="utf-8"></script>
 <script type="text/javascript" src="/javascript/audio_engine.js?v=105" charset="utf-8"></script>
 <script type="text/javascript" src="/javascript/livecoder.js?v=106" charset="utf-8"></script>
 <script type="text/javascript">
 $(function() {
   LC.instance = new LC.LiveCoder('#editor', 'canvas', '#keylist', '#samplelist');
-  $('a[data-close]').click(function(e) {e.preventDefault(); $($(this).data('close')).hide(); return false;})  
+  $('a[data-close]').click(function(e) {e.preventDefault(); $($(this).data('close')).hide(); return false;})
 })
 </script>
 </body>

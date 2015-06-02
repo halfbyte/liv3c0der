@@ -227,7 +227,7 @@
         console.log("load", key);
         prefixPos = key.indexOf("gist:");
         if (prefixPos !== -1) {
-          return this.load_from_gist(key.substr(prefixPos + 5));
+          return this.load_from_gist(key.substr(prefixPos + 6));
         } else {
           return db.get(key, (function(_this) {
             return function(data) {
@@ -311,11 +311,17 @@
           if (this.drawMethod) {
             this.oldDrawMethod = this.drawMethod;
           }
-          if (draw) {
+          if (typeof draw !== "undefined" && draw !== null) {
             this.drawMethod = draw;
           }
-          if (pattern) {
-            return this.audioEngine.setPatternMethod(pattern);
+          if (typeof pattern !== "undefined" && pattern !== null) {
+            this.audioEngine.setPatternMethod(pattern);
+          }
+          if (typeof note !== "undefined" && note !== null) {
+            this.audioEngine.setNoteMethod(note);
+          }
+          if (typeof control !== "undefined" && control !== null) {
+            return this.audioEngine.setControlMethod(control);
           }
         } catch (_error) {
           exception = _error;

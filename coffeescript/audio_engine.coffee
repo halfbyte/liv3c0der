@@ -17,13 +17,13 @@ AE.LEnv = (p,t,l,min, max,a,d,s,r) ->
   p.linearRampToValueAtTime(max, t + (a*l))
   p.linearRampToValueAtTime(min + ((max - min) * s), t + ((a + d)*l))
   p.setValueAtTime(min + ((max - min) * s), t + l - (l*r))
-  p.linearRampToValueAtTime(min, t + l)  
+  p.linearRampToValueAtTime(min, t + l)
 
 # utility functions
 AE.chord = (notes, fun) ->
   for note in notes
     fun(note)
-    
+
 AE.arp = (notes, t, l, n, fun) ->
   for i in [0...n]
     note = notes[i % notes.length]
@@ -37,7 +37,7 @@ class Parameterized
      @parameters = $.extend(@parameters, @defaults)
    applyOptions: (options) ->
      @parameters = $.extend(@parameters, options)
-     
+
 
 class NoiseNode
   @makeBuffer: (ac, length = 1) ->
@@ -46,13 +46,13 @@ class NoiseNode
     for word,i in array
       array[i] = Math.random() * 2 - 1
     @buffer
-    
+
   constructor: (@ac, @buffer) ->
     @ac = ac
-    
+
     unless @buffer
       console.log("Making Buffer")
-      @buffer = NoiseNode.makeBuffer(@ac, 1)    
+      @buffer = NoiseNode.makeBuffer(@ac, 1)
   connect: (dest) =>
     @dest = dest
   start: (time) =>
@@ -62,7 +62,7 @@ class NoiseNode
     @source.connect(@dest)
   stop: (time) =>
     @source.stop(time)
-  
+
 class NoiseHat extends Parameterized
   constructor: (@context, @noise) ->
     @defaults
@@ -84,7 +84,7 @@ class NoiseHat extends Parameterized
     amp.connect(output);
     amp.gain.setValueAtTime(0, time);
     amp.gain.linearRampToValueAtTime(@parameters.volume, time + 0.001);
-    amp.gain.setValueAtTime(@parameters.volume, time + 0.001);    
+    amp.gain.setValueAtTime(@parameters.volume, time + 0.001);
     amp.gain.linearRampToValueAtTime(0, decayTime)
     noise.start(time);
     noise.stop(decayTime);
@@ -94,7 +94,7 @@ class NoiseHat extends Parameterized
     @applyOptions(options)
     @play(output, time)
     return this
-    
+
 
 class DrumSynth extends Parameterized
   constructor: (@context) ->
@@ -104,29 +104,39 @@ class DrumSynth extends Parameterized
       decay: 20
       start: 200
       end: 50
-       
-  
+
+
   play: (output, time) ->
     fDecayTime = time + (1 / @parameters.sweep)
     aDecayTime = time + (1 / @parameters.decay)
     sine = @context.createOscillator()
+    click = @context.createOscillator()
+    click.type = 'square'
+    click.frequency.value = 40;
     amp = @context.createGain()
+    clickamp = @context.createGain()
     sine.connect(amp)
+    click.connect(clickamp)
     amp.connect(output)
+    clickamp.connect(output)
+
+    clickamp.gain.setValueAtTime(@parameters.volume, time)
+    clickamp.gain.setTargetAtTime(0, time, 0.0007);
+
     sine.frequency.setValueAtTime(@parameters.start, time);
     sine.frequency.exponentialRampToValueAtTime(@parameters.end, fDecayTime);
-    amp.gain.setValueAtTime(0, time);
-    amp.gain.linearRampToValueAtTime(@parameters.volume, time + 0.001);
+    amp.gain.linearRampToValueAtTime(@parameters.volume, time);
     amp.gain.linearRampToValueAtTime(0, aDecayTime);
     sine.start(time);
+    click.start(time);click.stop(time + 0.009);
     sine.stop(aDecayTime);
     return this
-  
+
   p: (output, time, options = {}) ->
     @applyOptions(options)
     @play(output, time)
     return this
-    
+
 
 class SnareSynth extends Parameterized
   constructor: (@context, @noise) ->
@@ -140,8 +150,8 @@ class SnareSynth extends Parameterized
       flt_freq: 4000
       Q: 5
     @drumsyn.applyOptions(@parameters)
-    
-  
+
+
   play: (output, time) =>
     aDecayTime = time + (1 / @parameters.decay)
     amp = @context.createGain()
@@ -152,7 +162,7 @@ class SnareSynth extends Parameterized
     filter.frequency.value = @parameters.flt_freq;
     filter.Q.value = @parameters.Q;
     noise.connect(filter)
-    
+
     amp.gain.setValueAtTime(0, time);
     amp.gain.linearRampToValueAtTime(@parameters.volume, time + 0.001);
     amp.gain.linearRampToValueAtTime(0, aDecayTime);
@@ -180,7 +190,7 @@ class WubSynth extends Parameterized
       flt_lfo: 500
       lfo_freq: 4
       Q: 10
-          
+
   play: (destination, time, length, note, volume = 0.2) ->
     #console.log(@flt_f, @flt_mod)
     osc = @context.createOscillator()
@@ -194,7 +204,7 @@ class WubSynth extends Parameterized
     lfoAmp.connect(filter.frequency)
     osc.frequency.value = AE.NOTES[note]
     filter.Q.value = @parameters.Q
-    
+
     filter.frequency.setValueAtTime(@parameters.flt_freq + @parameters.flt_mod, time)
     filter.frequency.linearRampToValueAtTime(@parameters.flt_freq + @parameters.flt_mod, time + @parameters.flt_decay)
     osc.connect(filter)
@@ -215,7 +225,7 @@ class WubSynth extends Parameterized
     @applyOptions(options)
     @play(out, time, length, note, @parameters.volume)
     return this
-    
+
 
 class AcidSynth extends Parameterized
   constructor: (context) ->
@@ -272,7 +282,7 @@ class SawSynth extends Parameterized
       flt_mod: 3000
       Q: 0
     )
-      
+
   play: (destination, time, length, note, volume=0.1) ->
     gain = @context.createGain();
     filter = @context.createBiquadFilter();
@@ -292,13 +302,13 @@ class SawSynth extends Parameterized
       oscs.push(osc1,osc2)
 
     AE.LEnv(gain.gain, time, length, 0, volume, @parameters.amp_a, @parameters.amp_d, @parameters.amp_s, @parameters.amp_r)
-    AE.LEnv filter.frequency, 
-      time, 
-      length, 
-      @parameters.flt_freq, 
-      (@parameters.flt_freq + @parameters.flt_mod), 
+    AE.LEnv filter.frequency,
+      time,
+      length,
+      @parameters.flt_freq,
+      (@parameters.flt_freq + @parameters.flt_mod),
       @parameters.flt_a, @parameters.flt_d, @parameters.flt_s, @parameters.flt_r
-            
+
     filter.Q.value = @parameters.Q;
     filter.connect(gain)
     gain.connect(destination)
@@ -307,7 +317,7 @@ class SawSynth extends Parameterized
       osc.start(time)
       osc.stop(time + length)
     return this
-  
+
   p: (out, time, length, note, options = {}) ->
     @applyOptions(options)
     @play(out, time, length, note, @parameters.volume)
@@ -366,7 +376,7 @@ class Reverb
     @destination.gain.value = 1.0
     @mixer = context.createGain()
     @mixer.gain.value = 0.5
-    
+
     buffer = options.buffer
 
     if not buffer
@@ -404,16 +414,16 @@ class AE.LfoFilter
     @filter = context.createBiquadFilter()
     @lfo = context.createOscillator()
     lfo_amp = context.createGain()
-    
+
     @lfo.connect(lfo_amp)
     lfo_amp.connect(@filter.frequency)
-    
+
     @lfo_gain = lfo_amp.gain
-    @lfo_freq = @lfo.frequency 
-    
+    @lfo_freq = @lfo.frequency
+
     @frequency = @filter.frequency
     @Q = @filter.Q
-        
+
     @lfo_freq.value = options.lfo_freq or 0.11
     @lfo.type = options.lfo_type or 'sine'
     @lfo_gain.value = options.lfo_gain or 0
@@ -421,14 +431,14 @@ class AE.LfoFilter
     @frequency = options.frequency or 500
     @Q = options.Q or 5
     @destination = @filter
-    
+
     @lfo.start(0)
-    
+
   connect: (destination) ->
     @filter.connect(destination)
-    
 
-    
+
+
 
 
 
@@ -551,7 +561,7 @@ class Sample
   playGrain: (o,t,offset, l, r=1.0, g=0.4) ->
     return unless @loaded
     player = @makeBufferSource(o,r, g)
-    player.noteGrainOn(t,offset,l)
+    player.start(t,offset,l)
 
 class AE.Engine
   constructor: (@state, @sampleProgressCallback = null, @sampleFinishedCallback = null, @sampleErrorCallback = null) ->
@@ -577,43 +587,81 @@ class AE.Engine
 
     @patternMethod = null
     @oldPatternMethod = null
-    
+    @noteMethod = null
+
     if window.Tuna
       AE.Tuna = new Tuna(@audioContext);
-    
+
     @noiseBuffer = NoiseNode.makeBuffer(@audioContext, 2)
 
     AE.DelayLine = new Delay(@audioContext)
     AE.DelayLine.connect(@masterGain)
     AE.DEL = AE.DelayLine.destination
-        
+
 
     AE.NoiseHat = new NoiseHat(@audioContext, @noiseBuffer)
     AE.DrumSynth = new DrumSynth(@audioContext)
     AE.SnareSynth = new SnareSynth(@audioContext, @noiseBuffer)
-    
+
     AE.SawSynth = new SawSynth(@audioContext)
     AE.SpreadSynth = new SpreadSynth(@audioContext)
     AE.AcidSynth = new AcidSynth(@audioContext)
     AE.WubSynth = new WubSynth(@audioContext)
-  
+
     @masterOutlet = @masterCompressor
+
     @nextPatternTime = 0
     console.log("AE init done")
+
+    @midiInit()
+
+
+  midiInit: =>
+    navigator.requestMIDIAccess().then(@midiInitialized)
+
+  midiInitialized: (info) =>
+    info.inputs.forEach (input, id) =>
+      console.log(input, input.name, @onMidiMessage)
+      input.onmidimessage = @onMidiMessage
+
+
+      # input.addEventListener('midimessage', @onMidiMessage)
+
+  onMidiMessage: (event) =>
+    kind = event.data[0] & 0xF0
+    if kind == 0x90
+      if @noteMethod?
+        try
+            @noteMethod(@audioContext, @masterOutlet, @audioContext.currentTime, @state, event.data[1], event.data[2])
+        catch e
+          if @displayMessage
+            @displayMessage(e.message);
+          console.log(e.stack);
+
+    if kind == 0xB0
+      if @controlMethod?
+        try
+            @controlMethod(@audioContext, @masterOutlet, @audioContext.currentTime, @state, event.data[1], event.data[2])
+        catch e
+          if @displayMessage
+            @displayMessage(e.message);
+
+          console.log(e.stack);
+
 
   getAnalyserData: (data) =>
     @analyser.getByteFrequencyData(data)
     data
 
-  lateInit: => 
+  lateInit: =>
     AE.ReverbLine = new Reverb(@audioContext, {buffer: @reverbBuffer, decay: 3})
     AE.ReverbLine.connect(@masterGain)
-    
+
     dub_delay = new Delay(@audioContext)
     dub_reverb = new Reverb(@audioContext, {decay: 2, length: 8})
     dub_delay.connect(dub_reverb.destination)
     dub_reverb.connect(@masterGain)
-    
+
     AE.DubLine = {delay: dub_delay, reverb: dub_reverb}
     AE.DUB = AE.DubLine.delay.destination
     AE.REV = AE.ReverbLine.destination
@@ -628,11 +676,19 @@ class AE.Engine
     @reverbBuffer = null
     @lateInit()
     @sampleErrorCallback(message) if @sampleErrorCallback?
-  
+
   setPatternMethod: (patternMethod) =>
     @oldPatternMethod = @patternMethod
     @patternMethod = patternMethod
-  
+
+  setControlMethod: (controlMethod) =>
+    @oldControlMethod = @controlMethod
+    @controlMethod = controlMethod
+
+  setNoteMethod: (noteMethod) =>
+    @oldNoteMethod = @noteMethod
+    @noteMethod = noteMethod
+
   audioRunLoop: =>
     @timePerStep = 60 / (4 * @tempo)
 

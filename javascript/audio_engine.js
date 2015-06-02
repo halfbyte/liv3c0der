@@ -170,19 +170,28 @@
     }
 
     DrumSynth.prototype.play = function(output, time) {
-      var aDecayTime, amp, fDecayTime, sine;
+      var aDecayTime, amp, click, clickamp, fDecayTime, sine;
       fDecayTime = time + (1 / this.parameters.sweep);
       aDecayTime = time + (1 / this.parameters.decay);
       sine = this.context.createOscillator();
+      click = this.context.createOscillator();
+      click.type = 'square';
+      click.frequency.value = 40;
       amp = this.context.createGain();
+      clickamp = this.context.createGain();
       sine.connect(amp);
+      click.connect(clickamp);
       amp.connect(output);
+      clickamp.connect(output);
+      clickamp.gain.setValueAtTime(this.parameters.volume, time);
+      clickamp.gain.setTargetAtTime(0, time, 0.0007);
       sine.frequency.setValueAtTime(this.parameters.start, time);
       sine.frequency.exponentialRampToValueAtTime(this.parameters.end, fDecayTime);
-      amp.gain.setValueAtTime(0, time);
-      amp.gain.linearRampToValueAtTime(this.parameters.volume, time + 0.001);
+      amp.gain.linearRampToValueAtTime(this.parameters.volume, time);
       amp.gain.linearRampToValueAtTime(0, aDecayTime);
       sine.start(time);
+      click.start(time);
+      click.stop(time + 0.009);
       sine.stop(aDecayTime);
       return this;
     };
@@ -782,7 +791,7 @@
         return;
       }
       player = this.makeBufferSource(o, r, g);
-      return player.noteGrainOn(t, offset, l);
+      return player.start(t, offset, l);
     };
 
     return Sample;
@@ -796,11 +805,16 @@
       this.sampleFinishedCallback = sampleFinishedCallback != null ? sampleFinishedCallback : null;
       this.sampleErrorCallback = sampleErrorCallback != null ? sampleErrorCallback : null;
       this.audioRunLoop = __bind(this.audioRunLoop, this);
+      this.setNoteMethod = __bind(this.setNoteMethod, this);
+      this.setControlMethod = __bind(this.setControlMethod, this);
       this.setPatternMethod = __bind(this.setPatternMethod, this);
       this.sampleLoadError = __bind(this.sampleLoadError, this);
       this.postSampleInit = __bind(this.postSampleInit, this);
       this.lateInit = __bind(this.lateInit, this);
       this.getAnalyserData = __bind(this.getAnalyserData, this);
+      this.onMidiMessage = __bind(this.onMidiMessage, this);
+      this.midiInitialized = __bind(this.midiInitialized, this);
+      this.midiInit = __bind(this.midiInit, this);
       this.tempo = 120;
       this.steps = 16;
       this.groove = 0;
@@ -821,6 +835,7 @@
       this.masterCompressor.connect(this.masterGain);
       this.patternMethod = null;
       this.oldPatternMethod = null;
+      this.noteMethod = null;
       if (window.Tuna) {
         AE.Tuna = new Tuna(this.audioContext);
       }
@@ -838,7 +853,52 @@
       this.masterOutlet = this.masterCompressor;
       this.nextPatternTime = 0;
       console.log("AE init done");
+      this.midiInit();
     }
+
+    Engine.prototype.midiInit = function() {
+      return navigator.requestMIDIAccess().then(this.midiInitialized);
+    };
+
+    Engine.prototype.midiInitialized = function(info) {
+      return info.inputs.forEach((function(_this) {
+        return function(input, id) {
+          console.log(input, input.name, _this.onMidiMessage);
+          return input.onmidimessage = _this.onMidiMessage;
+        };
+      })(this));
+    };
+
+    Engine.prototype.onMidiMessage = function(event) {
+      var e, kind;
+      kind = event.data[0] & 0xF0;
+      if (kind === 0x90) {
+        if (this.noteMethod != null) {
+          try {
+            this.noteMethod(this.audioContext, this.masterOutlet, this.audioContext.currentTime, this.state, event.data[1], event.data[2]);
+          } catch (_error) {
+            e = _error;
+            if (this.displayMessage) {
+              this.displayMessage(e.message);
+            }
+            console.log(e.stack);
+          }
+        }
+      }
+      if (kind === 0xB0) {
+        if (this.controlMethod != null) {
+          try {
+            return this.controlMethod(this.audioContext, this.masterOutlet, this.audioContext.currentTime, this.state, event.data[1], event.data[2]);
+          } catch (_error) {
+            e = _error;
+            if (this.displayMessage) {
+              this.displayMessage(e.message);
+            }
+            return console.log(e.stack);
+          }
+        }
+      }
+    };
 
     Engine.prototype.getAnalyserData = function(data) {
       this.analyser.getByteFrequencyData(data);
@@ -887,6 +947,16 @@
     Engine.prototype.setPatternMethod = function(patternMethod) {
       this.oldPatternMethod = this.patternMethod;
       return this.patternMethod = patternMethod;
+    };
+
+    Engine.prototype.setControlMethod = function(controlMethod) {
+      this.oldControlMethod = this.controlMethod;
+      return this.controlMethod = controlMethod;
+    };
+
+    Engine.prototype.setNoteMethod = function(noteMethod) {
+      this.oldNoteMethod = this.noteMethod;
+      return this.noteMethod = noteMethod;
     };
 
     Engine.prototype.audioRunLoop = function() {
